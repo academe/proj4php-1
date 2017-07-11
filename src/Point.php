@@ -1,4 +1,5 @@
 <?php
+
 namespace proj4php;
 
 /**
@@ -14,7 +15,11 @@ namespace proj4php;
  * passed back and forth by reference rather than by value.
  * Other point classes may be used as long as they have
  * x and y properties, which will get modified in the transform method.
-*/
+ *
+ * Note: this is NOT a value object. The transform methods WILL modify
+ * it during the transform process. This is something we need to try to
+ * move away from.
+ */
 
 use Proj4php\Proj;
 use InvalidArgumentException;
@@ -31,30 +36,29 @@ class Point
         return $this->projection;
     }
 
-    public function setProjection($projection) {
+    public function setProjection(Proj $projection) {
         $this->projection = $projection;
     }
 
     /**
      * Constructor: Proj4js.Point
      *
-     * Parameters:
-     * - x {float} or {Array} either the first coordinates component or
-     *     the full coordinates
-     * - y {float} the second component
-     * - z {float} the third component, optional.
-     * - projection {Proj} the point projection, optional.
+     * @param floar|array x The first ordinate or the full coordinate array.
+     * @param float|null y The second ordinate.
+     * @param float|Proj|null z The third ordinate or the projection.
+     * @param Proj|null The point projection, optional.
      *
      * Notice z can be ommitted when projection still present.
      */
     public function __construct($x = null, $y = null, $z = null, Proj $projection = null)
     {
-        if ($projection===null and $z instanceof Proj)
-        {
+        if ($projection === null and $z instanceof Proj) {
           $projection = $z;
           $z = null;
         }
+
         $this->projection = $projection;
+
         if (is_array($x)) {
             // [x, y] or [x, y, z]
             $this->__set('x', $x[0]);
@@ -77,11 +81,11 @@ class Point
     /**
      * APIMethod: clone
      * Build a copy of a Point object.
+     * Renamed because of PHP keyword.
+     * CHECKME: double-underscores tend to be reserved for magic methods.
+     * FIXME: this does not include the projection in the clone
      *
-     * renamed because of PHP keyword.
-     * 
-     * Return:
-     * proj4php\Point the cloned point.
+     * @returns Point The cloned point.
      */
     public function __clone()
     {
@@ -95,10 +99,16 @@ class Point
      * Return:
      * {String} String representation of Proj4js.Point object. 
      * (ex. "x=5,y=42")
+     *
+     * @returns string
      */
     public function toString()
     {
-        return 'x=' . $this->x . ',y=' . $this->y;
+        return sprintf(
+            'x=%f,y=%f',
+            $this->x,
+            $this->y
+        );
     }
 
     /**
@@ -109,14 +119,18 @@ class Point
      * {String} Shortened String representation of Proj4js.Point object. 
      * (ex. "5, 42")
      * FIXME: actually "4 42" - a single space as separator, not commas.
+     *
+     * @returns string
      */
     public function toShortString()
     {
-        return $this->x . ' ' . $this->y;
+        return sprintf('%f %f', $this->x, $this->y);
     }
 
     /**
      * Getter for x, y and z.
+     *
+     * @returns float
      */
     public function __get($name)
     {
@@ -132,21 +146,30 @@ class Point
 
     /**
      * Setter for x, y and z.
+     *
+     * @param string $name The ordinate name, x, y or z
+     * @param float $name The new ordinate value
+     * @returns null
      */
     public function __set($name, $value)
     {
         $name = strtolower($name);
 
         if ($name != 'x' && $name != 'y' && $name != 'z') {
-            // Invalid property exception.
-            throw new InvalidArgumentException(sprintf('Invalid property "%s"; expects x, y or z.', $name));
+            throw new InvalidArgumentException(sprintf(
+                'Invalid property "%s"; expects x, y or z.',
+                $name
+            ));
         }
 
         $this->$name = (isset($value) ? (float)$value : 0.0);
     }
 
     /**
-     * Setter for x, y and z.
+     * Check if an ordinate is set.
+     *
+     * @param string $name The ordinate name, x, y or z
+     * @returns bool
      */
     public function __isset($name)
     {
@@ -161,6 +184,7 @@ class Point
 
     /**
      * Return as an [x, y, z] array.
+     * @returns array
      */
     public function toArray()
     {

@@ -33,7 +33,7 @@ class Common
     // Toms region 1 constant
     const AD_C = 1.0026000;
 
-    /* datum_type values */
+    // datum_type values
     const PJD_UNKNOWN   = 0;
     const PJD_3PARAM    = 1;
     const PJD_7PARAM    = 2;

@@ -1,4 +1,5 @@
 <?php
+
 namespace proj4php\projCode;
 
 /**
@@ -42,10 +43,13 @@ class Lcc
     // The remaining protected properties may be accessed in other tests.
 
     public $lat0;
+
     // first standard parallel
     public $lat1;
+
     // second standard parallel
     public $lat2;
+
     public $k0;
     public $a;
     public $b;
@@ -63,7 +67,6 @@ class Lcc
 
     public function init()
     {
-        // array of:  r_maj,r_min,lat1,lat2,c_lon,c_lat,false_east,false_north
         //double c_lat;                   /* center latitude                      */
         //double c_lon;                   /* center longitude                     */
         //double lat1;                    /* first standard parallel              */
@@ -74,21 +77,21 @@ class Lcc
         //double false_north;             /* y offset in meters                   */
 
         // SR-ORG:123
-        if ( ! isset($this->lat0)) {
+        if (! isset($this->lat0)) {
             $this->lat0=0.0;
         }
 
         // If lat2 is not defined
-        if ( ! isset($this->lat2)) {
+        if (! isset($this->lat2)) {
             $this->lat2 = $this->lat0;
         }
 
         // SR-ORG:113
-        if ( ! isset($this->lat1)) {
+        if (! isset($this->lat1)) {
             $this->lat1 = $this->lat0;
         }
 
-        if ( ! isset($this->k0)) {
+        if (! isset($this->k0)) {
             $this->k0 = 1.0;
         }
 
@@ -103,11 +106,13 @@ class Lcc
 
         $sin1 = sin($this->lat1);
         $cos1 = cos($this->lat1);
+
         $ms1 = Common::msfnz($this->e, $sin1, $cos1);
         $ts1 = Common::tsfnz($this->e, $this->lat1, $sin1);
 
         $sin2 = sin($this->lat2);
         $cos2 = cos($this->lat2);
+
         $ms2 = Common::msfnz($this->e, $sin2, $cos2);
         $ts2 = Common::tsfnz($this->e, $this->lat2, $sin2);
 
@@ -122,14 +127,15 @@ class Lcc
         $this->f0 = $ms1 / ($this->ns * pow($ts1, $this->ns));
         $this->rh = ($this->a * $this->f0 * pow($ts0, $this->ns));///$this->to_meter;
 
-        if ( ! isset($this->title)) {
+        if (! isset($this->title)) {
             $this->title = 'Lambert Conformal Conic';
         }
     }
 
-    // Lambert Conformal conic forward equations--mapping lat,long to x,y
-    // -----------------------------------------------------------------
-    // CHECKME: should this be a LongLat object? Why is "log" and "lat" being squeezed into a "point"?
+    /**
+     * Lambert Conformal conic forward equations--mapping lat,long to x,y
+     * CHECKME: should this be a LongLat object? Why is "log" and "lat" being squeezed into a "point"?
+     */
     public function forward(Point $p)
     {
         list($lon, $lat) = $p->toArray();
@@ -217,10 +223,10 @@ class Lcc
         $theta = 0.0;
 
         if ($rh1 != 0) {
-            $theta = atan2(($con * $x ), ($con * $y));
+            $theta = atan2($con * $x, $con * $y);
         }
 
-        if (($rh1 != 0) || ($this->ns > 0.0)) {
+        if ($rh1 != 0 || $this->ns > 0.0) {
             $con = 1.0 / $this->ns;
             $ts = pow(($rh1 / ($this->a * $this->f0)), $con);
             $lat = Common::phi2z($this->e, $ts);

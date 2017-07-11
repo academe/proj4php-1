@@ -14,31 +14,85 @@ use Exception;
 
 class Datum
 {
+    /**
+     * Short code used to find the datum.
+     */
     public $datum_code;
+
+    /**
+     * The type of the datum, derived from the parameters supplied.
+     * One of:
+     * - Common::PJD_WGS84
+     * - Common::PJD_NODATUM
+     * - Common::PJD_3PARAM
+     * - Common::PJD_7PARAM
+     *
+     * There are also these values, that are not used:
+     *
+     * - Common::PJD_UNKNOWN
+     * - Common::PJD_GRIDSHIFT
+     */
     public $datum_type;
+
     public $datum_params;
 
     /**
-     * Various properties that are set and referenced *somewhere* in this class.
-     * They should all be followed up: do they need to be public? Are they used
-     * anywhere? Are they redundant/duplicates of other properties, constants or
-     * system constants?
+     * Semi-major axis.
      */
     public $a;
+
+    /**
+     * Semi-minor axis.
+     */
     public $b;
-    public $ep2;
+
+    // Note that both es and ep2 can be derived from a and b, and indeed
+    // are when only a and b are available in the Proj.
+    // es, ep2 and b can also be derived from a an reverse-flattening (1/f)
+
+    /**
+     * First eccentricity squared.
+     */
     public $es;
 
     /**
-     * @param Proj $proj 
+     * Second eccentricity squared
+     */
+    public $ep2;
+
+    /**
+     * This datum gets all its parameters from the parent projection (Proj)
+     * that it will be a child of. This seems backwards. A Datum should be
+     * able to stand alone after being set up with simple data, and not need
+     * to have to reference public properties of a parent object to look for
+     * that data.
+     *
+     * Initialisation of this object also converts the parent Proj datum params
+     * from seconds to radians, *before* copying them across, which seems
+     * very wrong (nasty side-effects just by instantiating a Datum).
+     * At least it does not refeer to the parent Proj after the initialisation
+     * in the constructor, though that does not mean something else isn't going
+     * to poke about in here. Making this a value object should help with that.
+     *
+     * Properties that are read and used in initialisation:
+     *
+     * - datumCode string
+     * - datum_params array of float, either 3 or 7 parameters
+     * - a float
+     * - b float
+     * - es float
+     * - ep2 float
+     *
+     * @param Proj $proj
      */
     public function __construct(Proj $proj)
     {
         // default setting
         $this->datum_type = Common::PJD_WGS84;
 
-        if (isset($proj->datumCode))
+        if (isset($proj->datumCode)) {
             $this->datum_code = $proj->datumCode;
+        }
 
         if (isset($proj->datumCode) && $proj->datumCode == 'none') {
             $this->datum_type = Common::PJD_NODATUM;
@@ -62,8 +116,8 @@ class Datum
                 ) {
                     $this->datum_type = Common::PJD_7PARAM;
 
-                    // The Datum messes around with more properties of the Proj directly - smells bad.
-                    // What do these anonymous indexes of the datum_params even mean?
+                    // The Datum messes around with more properties of the Proj directly - code smell.
+
                     $proj->datum_params[3] *= Common::SEC_TO_RAD;
                     $proj->datum_params[4] *= Common::SEC_TO_RAD;
                     $proj->datum_params[5] *= Common::SEC_TO_RAD;
@@ -75,14 +129,11 @@ class Datum
             $this->datum_params = $proj->datum_params;
         }
 
-        if (isset($proj)) {
-            // datum object also uses these values
-            $this->a = $proj->a;
-            $this->b = $proj->b;
-            $this->es = $proj->es;
-            $this->ep2 = $proj->ep2;
-            // $this->datum_params = $proj->datum_params;
-        }
+        // datum object also uses these values
+        $this->a = $proj->a;
+        $this->b = $proj->b;
+        $this->es = $proj->es;
+        $this->ep2 = $proj->ep2;
     }
 
     /**
@@ -120,7 +171,7 @@ class Datum
             );
         } elseif ($this->datum_type == Common::PJD_GRIDSHIFT ||
             $dest->datum_type == Common::PJD_GRIDSHIFT) {
-            throw new Exception("ERROR: Grid shift transformations are not implemented.");
+            throw new Exception('ERROR: Grid shift transformations are not implemented.');
         }
 
         // Datums are equal.
@@ -129,29 +180,38 @@ class Datum
 
     public function reportDebug()
     {
-        if (isset($this->datum_code))
-          Proj4php::reportDebug("Datum code=$this->datum_code\n");
-        Proj4php::reportDebug('Datum type:'.$this->datum_type."\n");
-        if (isset($this->a))
-          Proj4php::reportDebug("a=$this->a\n");
-        if (isset($this->b))
-          Proj4php::reportDebug("b=$this->b\n");
-        if (isset($this->es))
-          Proj4php::reportDebug("es=$this->es\n");
-        if (isset($this->es2))
-          Proj4php::reportDebug("es2=$this->es2\n");
-        if (isset($this->datum_params))
-        {
-          foreach($this->datum_params as $key=>$value)
-             Proj4php::reportDebug("Param $key=$value\n");
+        if (isset($this->datum_code)) {
+            Proj4php::reportDebug(sprintf("Datum code=%s\n", $this->datum_code));
         }
-        else
-        {
-          Proj4php::reportDebug("no params\n");
+
+        Proj4php::reportDebug(sprintf("Datum type:%s\n", $this->datum_type));
+
+        if (isset($this->a)) {
+            Proj4php::reportDebug(sprintf("a=%f\n", $this->a));
+        }
+
+        if (isset($this->b)) {
+            Proj4php::reportDebug(sprintf("b=%f\n", $this->b));
+        }
+
+        if (isset($this->es)) {
+            Proj4php::reportDebug(sprintf("es=%f\n", $this->es));
+        }
+
+        if (isset($this->es2)) {
+            Proj4php::reportDebug(sprintf("es2=%s\n", $this->es2));
+        }
+
+        if (isset($this->datum_params)) {
+            foreach($this->datum_params as $key => $value) {
+                Proj4php::reportDebug(sprintf("Param %s=%f\n", $key, $value));
+            }
+        } else {
+            Proj4php::reportDebug("no params\n");
         }
     }
 
-    /*
+    /**
      * The function Convert_Geodetic_To_Geocentric converts geodetic coordinates
      * (latitude, longitude, and height) to geocentric coordinates (X, Y, Z),
      * according to the current ellipsoid parameters.
@@ -166,29 +226,31 @@ class Datum
      */
     public function geodetic_to_geocentric($p)
     {
-        Proj4php::reportDebug('geodetic_to_geocentric('.$p->x.','.$p->y.")\n");
+        Proj4php::reportDebug(sprintf("geodetic_to_geocentric(%f,%f)\n", $p->x, $p->y));
         $this->reportDebug();
 
         $Longitude = $p->x;
         $Latitude = $p->y;
+
         // Z value not always supplied
         $Height = (isset($p->z) ? $p->z : 0);
+
         // GEOCENT_NO_ERROR;
         $Error_Code = 0;
 
-        /*
-         * * Don't blow up if Latitude is just a little out of the value
-         * * range as it may just be a rounding issue.  Also removed longitude
-         * * test, it should be wrapped by cos() and sin().  NFW for PROJ.4, Sep/2001.
+        /**
+         * Don't blow up if Latitude is just a little out of the value
+         * range as it may just be a rounding issue.  Also removed longitude
+         * test, it should be wrapped by cos() and sin().  NFW for PROJ.4, Sep/2001.
          */
 
         if ($Latitude < -Common::HALF_PI && $Latitude > -1.001 * Common::HALF_PI) {
             $Latitude = -Common::HALF_PI;
         } elseif ($Latitude > Common::HALF_PI && $Latitude < 1.001 * Common::HALF_PI) {
             $Latitude = Common::HALF_PI;
-        } elseif (($Latitude < -Common::HALF_PI) || ($Latitude > Common::HALF_PI)) {
+        } elseif ($Latitude < -Common::HALF_PI || $Latitude > Common::HALF_PI) {
             // Latitude out of range.
-            Proj4php::reportError('geocent:lat out of range:' . $Latitude."\n");
+            Proj4php::reportError(sprintf("geocent:lat out of range: %f\n", $Latitude));
             return null;
         }
 
@@ -226,6 +288,7 @@ class Datum
             $p->x,
             $p->y
         ));
+
         $this->reportDebug();
 
         // local defintions and variables
@@ -379,6 +442,7 @@ class Datum
             } else {
                 $AtPole = true;
                 $Longitude = 0.0;
+
                 if ($Z > 0.0) { /* north pole */
                     $Latitude = Common::HALF_PI;
                 } elseif (Z < 0.0) { /* south pole */
@@ -437,20 +501,22 @@ class Datum
         ));
 
         if ($this->datum_type == Common::PJD_3PARAM) {
-            Proj4php::reportDebug("+x=".$this->datum_params[0]."\n");
-            Proj4php::reportDebug("+y=".$this->datum_params[1]."\n");
-            Proj4php::reportDebug("+z=".$this->datum_params[2]."\n");
+            Proj4php::reportDebug(sprintf("+x=%f\n", $this->datum_params[0]));
+            Proj4php::reportDebug(sprintf("+y=%f\n", $this->datum_params[1]));
+            Proj4php::reportDebug(sprintf("+z=%f\n", $this->datum_params[2]));
+
             $p->x += $this->datum_params[0];
             $p->y += $this->datum_params[1];
             $p->z += $this->datum_params[2];
         } elseif ($this->datum_type == Common::PJD_7PARAM) {
-            Proj4php::reportDebug("Dx=".$this->datum_params[0]."\n");
-            Proj4php::reportDebug("Dy=".$this->datum_params[1]."\n");
-            Proj4php::reportDebug("Dz=".$this->datum_params[2]."\n");
-            Proj4php::reportDebug("Rx=".$this->datum_params[3]."\n");
-            Proj4php::reportDebug("Ry=".$this->datum_params[4]."\n");
-            Proj4php::reportDebug("Rz=".$this->datum_params[5]."\n");
-            Proj4php::reportDebug("M=".$this->datum_params[6]."\n"); 
+            Proj4php::reportDebug(sprintf("Dx=%f\n", $this->datum_params[0]));
+            Proj4php::reportDebug(sprintf("Dy=%f\n", $this->datum_params[1]));
+            Proj4php::reportDebug(sprintf("Dz=%f\n", $this->datum_params[2]));
+            Proj4php::reportDebug(sprintf("Rx=%f\n", $this->datum_params[3]));
+            Proj4php::reportDebug(sprintf("Ry=%f\n", $this->datum_params[4]));
+            Proj4php::reportDebug(sprintf("Rz=%f\n", $this->datum_params[5]));
+            Proj4php::reportDebug(sprintf("M=%f\n", $this->datum_params[6])); 
+
             $Dx_BF = $this->datum_params[0];
             $Dy_BF = $this->datum_params[1];
             $Dz_BF = $this->datum_params[2];
@@ -466,8 +532,8 @@ class Datum
     }
 
     /**
-     *  coordinate system definition,
-     *  point to transform in geocentric coordinates (x,y,z)
+     * coordinate system definition,
+     * point to transform in geocentric coordinates (x,y,z)
      * Note: this will change the point by reference.
      */
     public function geocentric_from_wgs84(Point $p)
@@ -475,20 +541,21 @@ class Datum
         Proj4php::reportDebug('geocentric_from_wgs84('.$p->x.','.$p->y.")\n");
 
         if ($this->datum_type == Common::PJD_3PARAM) {
-            Proj4php::reportDebug("+x=".$this->datum_params[0]."\n");
-            Proj4php::reportDebug("+y=".$this->datum_params[1]."\n");
-            Proj4php::reportDebug("+z=".$this->datum_params[2]."\n");
+            Proj4php::reportDebug(sprintf("+x=%f\n", $this->datum_params[0]));
+            Proj4php::reportDebug(sprintf("+y=%f\n", $this->datum_params[1]));
+            Proj4php::reportDebug(sprintf("+z=%f\n", $this->datum_params[2]));
+
             $p->x -= $this->datum_params[0];
             $p->y -= $this->datum_params[1];
             $p->z -= $this->datum_params[2];
         } elseif ($this->datum_type == Common::PJD_7PARAM) {
-            Proj4php::reportDebug("Dx=".$this->datum_params[0]."\n");
-            Proj4php::reportDebug("Dy=".$this->datum_params[1]."\n");
-            Proj4php::reportDebug("Dz=".$this->datum_params[2]."\n");
-            Proj4php::reportDebug("Rx=".$this->datum_params[3]."\n");
-            Proj4php::reportDebug("Ry=".$this->datum_params[4]."\n");
-            Proj4php::reportDebug("Rz=".$this->datum_params[5]."\n");
-            Proj4php::reportDebug("M=".$this->datum_params[6]."\n");
+            Proj4php::reportDebug(sprintf("Dx=%f\n", $this->datum_params[0]));
+            Proj4php::reportDebug(sprintf("Dy=%f\n", $this->datum_params[1]));
+            Proj4php::reportDebug(sprintf("Dz=%f\n", $this->datum_params[2]));
+            Proj4php::reportDebug(sprintf("Rx=%f\n", $this->datum_params[3]));
+            Proj4php::reportDebug(sprintf("Ry=%f\n", $this->datum_params[4]));
+            Proj4php::reportDebug(sprintf("Rz=%f\n", $this->datum_params[5]));
+            Proj4php::reportDebug(sprintf("M=%f\n", $this->datum_params[6])); 
 
             $Dx_BF = $this->datum_params[0];
             $Dy_BF = $this->datum_params[1];

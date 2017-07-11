@@ -26,7 +26,7 @@ maintained for older applications that need it.
 
 ```php
 // Use a PSR-4 autoloader for the `proj4php` root namespace.
-include("vendor/autoload.php");
+include 'vendor/autoload.php';
 
 use proj4php\Proj4php;
 use proj4php\Proj;

@@ -36,7 +36,8 @@ class Proj
 
     /**
      * Property: projection
-     * The projection object for $this projection. */
+     * The projection object for $this projection.
+     */
     public $projection;
 
     /**
@@ -54,6 +55,15 @@ class Proj
     // The Datum class sets these directly.
     public $datum_params;
     public $datumCode;
+
+    /**
+     * Further datum parameters.
+     */
+    public $a;
+    public $b;
+    public $es;
+    public $ep2;
+    public $datumName;
 
     /**
      * Property: axis
@@ -80,7 +90,9 @@ class Proj
      */
     public $localCS = false;
 
-    // Proj4php injected object.
+    /**
+     * Proj4php injected object.
+     */
     protected $proj4php;
 
     /**
@@ -90,23 +102,25 @@ class Proj
     public $srsCode;
 
     /**
+     * Ellipse name.
+     */
+    public $ellps;
+
+    /**
+     * Reciprocal of flattening, ellisoid parameter.
+     */
+    public $rf;
+
+    /**
      * Various properties that are set and referenced *somewhere* in this class.
      * They should all be followed up: do they need to be public? Are they used
      * anywhere? Are they redundant/duplicates of other properties, constants or
      * system constants?
      */
     public $R_A;
-    public $a2;
-    public $a;
     public $alpha;
-    public $b2;
-    public $b;
-    public $datumName;
     public $defData;
     public $e;
-    public $ellps;
-    public $ep2;
-    public $es;
     public $from_greenwich;
     public $k0;
     public $lat0;
@@ -116,24 +130,24 @@ class Proj
     public $long0;
     public $longc;
     public $nagrids;
-    public $rf;
     public $srsAuth;
     public $srsProjNumber;
     public $to_rads;
     public $utmSouth;
     public $zone;
 
+    // a2 and b2 are possibly just intermediate variables used in calcultations.
+    public $a2;
+    public $b2;
+
     public $to_meter = 1.0;
 
     public $sphere = false;
 
     /**
-     * Constructor: initialize
-     * Constructor for Proj4php::Proj objects
-     *
-     * Parameters:
-     * $srsCode - a code for map projection definition parameters. These are usually
-     * (but not always) EPSG codes.
+     * @param string $srsCode Spacial Referemce System code.
+     *     These are usually EPSG codes.
+     * @param Proj4php $proj4php
      */
     public function __construct($srsCode, Proj4php $proj4php)
     {
@@ -146,7 +160,7 @@ class Proj
         // need to check the string *starts* with these names.
 
         if (preg_match('/(GEOGCS|GEOCCS|PROJCS|LOCAL_CS)/', $srsCode)) {
-            $this->to_rads = COMMON::D2R;
+            $this->to_rads = Common::D2R;
 
             $params=Wkt::Parse($srsCode);
 
@@ -168,7 +182,7 @@ class Proj
             return;
         }
 
-        if (strpos($srsCode,'+proj') === 0) {
+        if (strpos($srsCode, '+proj') === 0) {
             $this->defData = $srsCode;
             $this->parseDefs();
             $this->loadProjCode($this->projName);
@@ -235,13 +249,14 @@ class Proj
      */
     public function loadProjDefinition()
     {
-        // Check in memory
+        // Check in memory, i.e. cached in memory.
         if ($this->proj4php->hasDef($this->srsCode)) {
             $this->defsLoaded();
             return;
         }
 
-        // Check for def on the server
+        // Check for def on the server.
+        // Can the autoloader do this?
         $filename = __DIR__ . '/defs/' . strtoupper($this->srsAuth) . $this->srsProjNumber . '.php';
 
         try {
@@ -359,7 +374,7 @@ class Proj
     public function loadProjCodeFailure($projName)
     {
         Proj4php::reportError(sprintf(
-            "failed to find projection file for: (%s) %s", gettype($projName), $projName
+            'failed to find projection file for: (%s) %s', gettype($projName), $projName
         ));
         //TBD initialize with identity transforms so proj will still work?
     }
@@ -465,14 +480,17 @@ class Proj
                 case "units":
                     $this->units = trim($paramVal);
                     break;
-                case "datum": $this->datumCode = trim($paramVal);
+                case "datum":
+                    $this->datumCode = trim($paramVal);
                     break;
-                case "nadgrids": $this->nagrids = trim($paramVal);
+                case "nadgrids":
+                    $this->nagrids = trim($paramVal);
                     break;
                 case "ellps":
                     $this->ellps = trim($paramVal);
-                    if ($this->ellps=='WGS84' && !isset($this->datumCode))
-                       $this->datumCode = trim($paramVal);
+                    if ($this->ellps == 'WGS84' && !isset($this->datumCode)) {
+                        $this->datumCode = trim($paramVal);
+                    }
                     break;
                 case "a":
                     // semi-major radius
@@ -484,7 +502,7 @@ class Proj
                     break;
                 case "rf":
                     // DGR 2007-11-20
-                    // inverse flattening rf= a/(a-b)
+                    // inverse flattening rf = a/(a-b)
                     $this->rf = floatval($paramVal);
                     break;
                 case "lat_0":
@@ -492,11 +510,11 @@ class Proj
                     $this->lat0 = floatval($paramVal) * Common::D2R;
                     break;
                 case "lat_1":
-                    //standard parallel 1
+                    // standard parallel 1
                     $this->lat1 = floatval($paramVal) * Common::D2R;
                     break;
                 case "lat_2":
-                    //standard parallel 2
+                    // standard parallel 2
                     $this->lat2 = floatval($paramVal) * Common::D2R;
                     break;
                 case "lat_ts":
@@ -544,7 +562,10 @@ class Proj
                     $this->utmSouth = true;
                     break;
                 case "towgs84":
-                    $this->datum_params = explode( ",", $paramVal);
+                    // Here convert them all to floats instead of leaving that for downstream.
+                    // Note this can also be derived from the datum code. This parameter is
+                    // for custom datums, I guess.
+                    $this->datum_params = explode(',', $paramVal);
                     break;
                 case "to_meter":
                     // cartesian scaling
@@ -598,22 +619,31 @@ class Proj
             $this->datumCode = 'none';
         }
 
-        if (isset($this->datumCode) && $this->datumCode != 'none') {
-            $datumDef = $this->proj4php->getDatum($this->datumCode);
-            if (is_array($datumDef)) {
-                $this->datum_params = array_key_exists('towgs84', $datumDef) ? explode(',', $datumDef['towgs84']) : null;
+        // Expand a datum code into parameters.
 
-               if(!isset($this->ellps)){
-                    //in the case of SR-ORG:7191, proj for defines  +datum=wgs84, but also +ellps=krass. this would have overwriten that ellipsoid
+        if (isset($this->datumCode) && $this->datumCode != 'none') {
+            // Get the datum definition for this code.
+            $datumDef = $this->proj4php->getDatum($this->datumCode);
+
+            if (is_array($datumDef)) {
+                $this->datum_params = array_key_exists('towgs84', $datumDef)
+                    ? explode(',', $datumDef['towgs84'])
+                    : null;
+
+                if (! isset($this->ellps)) {
+                    // in the case of SR-ORG:7191, proj for defines  +datum=wgs84, but
+                    // also +ellps=krass. this would have overwriten that ellipsoid
+
                     $this->ellps = $datumDef['ellipse'];
                 }
+
                 $this->datumName = array_key_exists('name', $datumDef) ? $datumDef['name'] : $this->datumCode;
             }
         }
 
         // Do we have an ellipsoid?
-        if (!isset($this->a)) {
-            if ( ! isset($this->ellps) || strlen($this->ellps) == 0 || ! $this->proj4php->hasEllipsoid($this->ellps)) {
+        if (! isset($this->a)) {
+            if (! isset($this->ellps) || strlen($this->ellps) == 0 || ! $this->proj4php->hasEllipsoid($this->ellps)) {
                 $ellipse = $this->proj4php->getEllipsoid('WGS84');
             } else {
                 $ellipse = $this->proj4php->getEllipsoid($this->ellps);
@@ -622,47 +652,52 @@ class Proj
             Proj4php::extend($this, $ellipse);
         }
 
-        if (isset($this->rf) && !isset($this->b)&&$this->rf!=0) { // SR-ORG:28 division by 0
-
+        if (isset($this->rf) && !isset($this->b) && $this->rf != 0) {
+            // SR-ORG:28 division by 0
             $this->b = (1.0 - 1.0 / $this->rf) * $this->a;
         }
 
-        // rf is a floatval to ===0 fails // SR-ORG:28
+        // rf is a floatval to === 0 fails // SR-ORG:28
         if ((isset($this->rf) && $this->rf == 0) || abs($this->a - $this->b) < Common::EPSLN) {
             $this->sphere = true;
             $this->b = $this->a;
         }
 
-
         // used in geocentric
         $this->a2 = $this->a * $this->a;
+
         // used in geocentric
         $this->b2 = $this->b * $this->b;
-        // e ^ 2
+
+        // First eccentricity squared: e ^ 2
         $this->es = ($this->a2 - $this->b2) / $this->a2;
+
         // eccentricity
         $this->e = sqrt($this->es);
 
         if (isset($this->R_A)) {
-            $this->a *= 1. - $this->es * (Common::SIXTH + $this->es * (Common::RA4 + $this->es * Common::RA6));
+            $this->a *= 1.0 - $this->es * (Common::SIXTH + $this->es * (Common::RA4 + $this->es * Common::RA6));
             $this->a2 = $this->a * $this->a;
             $this->b2 = $this->b * $this->b;
             $this->es = 0.0;
         }
 
+        // Second eccentricity squared.
         // used in geocentric
         $this->ep2 = ($this->a2 - $this->b2) / $this->b2;
 
-        if ( ! isset($this->k0)) {
+        if (! isset($this->k0)) {
             // default value
             $this->k0 = 1.0;
         }
 
         // DGR 2010-11-12: axis
-        if (!isset($this->axis)) {
+        if (! isset($this->axis)) {
             $this->axis = "enu";
         }
 
+        // Here just pass in the values that the datum needs, and not this object.
+        // Is this the right place to do this anyway - we are just "deriving constants"?
         $this->datum = new Datum($this);
     }
 }
