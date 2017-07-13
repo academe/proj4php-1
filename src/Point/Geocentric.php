@@ -106,6 +106,11 @@ class Geocentric
     protected function validateOrdinate($ordinate, $name = 'unknown')
     {
         if (isset($ordinate)) {
+            // FIXME: make sure the string can converted to a float.
+            if (is_string($ordinate) || is_integer($ordinate)) {
+                $ordinate = floatval($ordinate);
+            }
+
             $type = gettype($ordinate);
 
             if ($type !== 'double' && $type !== 'integer') {
@@ -116,7 +121,7 @@ class Geocentric
                 ));
             }
 
-            return (float)$ordinate;
+            return $ordinate;
         } else {
             return null;
         }
@@ -212,9 +217,6 @@ class Geocentric
                 // Split by whitespace.
                 $x = preg_split('/[\s]+/', trim($x));
             }
-
-            // Make sure all elements are floats.
-            $x = array_map('floatval', $x);
         }
 
         // The first (and only) parameter can be an array.
@@ -239,7 +241,7 @@ class Geocentric
                 $x = $assoc;
             }
 
-            // If numeric keys are used.
+            // Make sure all elements are floats.
             list($x, $y, $z) = array_pad(array_values($x), 3, null);
         }
 

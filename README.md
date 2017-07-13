@@ -74,6 +74,25 @@ You can also create your projection from OGC WKT definition :
 $projOSGB36 = new Proj('PROJCS["OSGB 1936 / British National Grid",GEOGCS["OSGB 1936",DATUM["OSGB_1936",SPHEROID["Airy 1830",6377563.396,299.3249646,AUTHORITY["EPSG","7001"]],AUTHORITY["EPSG","6277"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4277"]],UNIT["metre",1,AUTHORITY["EPSG","9001"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",49],PARAMETER["central_meridian",-2],PARAMETER["scale_factor",0.9996012717],PARAMETER["false_easting",400000],PARAMETER["false_northing",-100000],AUTHORITY["EPSG","27700"],AXIS["Easting",EAST],AXIS["Northing",NORTH]]',$proj4);
 ```
 
+## Points
+
+### Geocentric
+
+A geocentric point can be created with various format parameters:
+
+    $geocentric = new \proj4php\Point\Geocentric($coords, $datum);
+
+The `$coords` can be formatted as a comma or space separated string,
+as an associative array, or as a numeric array. For example:
+
+    "123,456,789"
+    "123 456 789"
+    [123, 456, 789]
+    ['y' => 456, 'x' => 123, 'z' => 789]
+
+With the exception of the associative array (which can be in any order),
+the order of the ordinates will be x, y, z.
+
 ## Developing - How to contribute
 
 Feel free to fork us and submit your changes!
