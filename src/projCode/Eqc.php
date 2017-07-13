@@ -16,7 +16,9 @@ use proj4php\Common;
 
 class Eqc
 {
+    // The Datum parameters.
     public $a;
+
     public $lat0;
     public $lat_ts;
     public $long0;

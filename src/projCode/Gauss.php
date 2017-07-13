@@ -16,10 +16,12 @@ use proj4php\Point;
 
 class Gauss
 {
-    public $C;
-    public $K;
+    // The Datum parameters.
     public $e;
     public $es;
+
+    public $C;
+    public $K;
     public $lat0;
     public $phic0;
     public $ratexp;
@@ -82,7 +84,7 @@ class Gauss
 
         // convergence failed
         if (! $i) {
-            Proj4php::reportError("gauss:inverse:convergence failed");
+            Proj4php::reportError('gauss:inverse:convergence failed');
             return null;
         }
 

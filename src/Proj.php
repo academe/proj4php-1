@@ -8,6 +8,8 @@ namespace proj4php;
  * Inspired by Proj4js from Mike Adair madairATdmsolutions.ca
  * and Richard Greenwood rich@greenwoodmap.com
  * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html
+ *
+ * This class defines a projection.
  */
 
 use Exception;
@@ -620,6 +622,9 @@ class Proj
         }
 
         // Expand a datum code into parameters.
+        // In fact, nearly all of these derived constants come from the datum
+        // settings, and could be moved to the Datum, perhaps calculated lazily,
+        // only when and if they are needed.
 
         if (isset($this->datumCode) && $this->datumCode != 'none') {
             // Get the datum definition for this code.
@@ -675,6 +680,7 @@ class Proj
         // eccentricity
         $this->e = sqrt($this->es);
 
+        // R_A: Compute radius such that the area of the sphere is the same as the area of the ellipsoid.
         if (isset($this->R_A)) {
             $this->a *= 1.0 - $this->es * (Common::SIXTH + $this->es * (Common::RA4 + $this->es * Common::RA6));
             $this->a2 = $this->a * $this->a;
@@ -693,7 +699,7 @@ class Proj
 
         // DGR 2010-11-12: axis
         if (! isset($this->axis)) {
-            $this->axis = "enu";
+            $this->axis = 'enu';
         }
 
         // Here just pass in the values that the datum needs, and not this object.

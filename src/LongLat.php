@@ -6,8 +6,10 @@ namespace proj4php;
  * Author : Julien Moquet
  * 
  * Inspired by Proj4js from Mike Adair madairATdmsolutions.ca
- * and Richard Greenwood rich@greenwoodmap.com 
- * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html 
+ * and Richard Greenwood rich@greenwoodmap.com
+ * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html
+ *
+ * This is a projection, not a point. It belongs in projCode.
  */
 class LongLat
 {

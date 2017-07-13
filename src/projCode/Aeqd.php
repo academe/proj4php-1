@@ -16,7 +16,9 @@ use proj4php\Point;
 
 class Aeqd
 {
+    // The Datum parameters.
     public $a;
+
     public $cos_p12;
     public $lat0;
     public $long0;

@@ -48,9 +48,11 @@ use proj4php\Common;
 
 class Merc
 {
+    // The Datum parameters.
     public $a;
     public $e;
     public $es;
+
     public $k0;
     public $lat_ts;
     public $long0;

@@ -172,7 +172,7 @@ class Common
     public static function asinz($x)
     {
         return asin(
-            abs( $x ) > 1.0 ? ($x > 1.0 ? 1.0 : -1.0) : $x 
+            abs($x) > 1.0 ? ($x > 1.0 ? 1.0 : -1.0) : $x 
         );
     }
 
@@ -184,7 +184,7 @@ class Common
      */
     public static function e0fn($x)
     {
-        return (1.0 - 0.25 * $x * (1.0 + $x / 16.0 * (3.0 + 1.25 * $x)));
+        return 1.0 - 0.25 * $x * (1.0 + $x / 16.0 * (3.0 + 1.25 * $x));
     }
 
     /**
@@ -226,9 +226,9 @@ class Common
     {
         return (
             $e0 * $phi
-            - $e1 * sin( 2.0 * $phi )
-            + $e2 * sin( 4.0 * $phi )
-            - $e3 * sin( 6.0 * $phi )
+            - $e1 * sin(2.0 * $phi)
+            + $e2 * sin(4.0 * $phi)
+            - $e3 * sin(6.0 * $phi)
         );
     }
 

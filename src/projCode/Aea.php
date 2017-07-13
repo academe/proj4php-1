@@ -39,14 +39,19 @@ use proj4php\Point;
 
 class Aea
 {
+    // The Datum parameters.
     public $a;
     public $b;
+    public $es;
+
+    // Locally initialised.
+    public $e3;
     public $c;
+
+    // Unsorted (public).
     public $con;
     public $cos_phi;
     public $cos_po;
-    public $e3;
-    public $es;
     public $lat0;
     public $lat1;
     public $lat2;
@@ -105,7 +110,7 @@ class Aea
             $this->ns0 = $this->con;
         }
 
-        $this->c = $this->ms1 * $this->ms1 + $this->ns0 * $this->qs1;
+        $this->c = ($this->ms1 * $this->ms1) + ($this->ns0 * $this->qs1);
         $this->rh = $this->a * sqrt($this->c - $this->ns0 * $this->qs0) / $this->ns0;
     }
 

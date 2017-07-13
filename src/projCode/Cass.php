@@ -38,14 +38,16 @@ use proj4php\Common;
 
 class Cass
 {
+    // The Datum parameters.
+    public $a;
+    public $es;
+
     public $a1;
     public $a2;
-    public $a;
     public $c;
     public $d2;
     public $dd;
     public $en;
-    public $es;
     public $lat0;
     public $long0;
     public $m0;
@@ -89,15 +91,22 @@ class Cass
             // ellipsoid
             $this->n = sin($phi);
             $this->c = cos($phi);
+
             $y = Common::pj_mlfn($phi, $this->n, $this->c, $this->en);
+
             $this->n = 1.0 / sqrt(1.0 - $this->es * $this->n * $this->n);
             $this->tn = tan($phi);
             $this->t = $this->tn * $this->tn;
             $this->a1 = $lam * $this->c;
             $this->c *= $this->es * $this->c / (1 - $this->es);
             $this->a2 = $this->a1 * $this->a1;
-            $x = $this->n * $this->a1 * (1.0 - $this->a2 * $this->t * ($this->C1 - (8.0 - $this->t + 8.0 * $this->c) * $this->a2 * $this->C2));
-            $y -= $this->m0 - $this->n * $this->tn * $this->a2 * (0.5 + (5. - $this->t + 6. * $this->c) * $this->a2 * $this->C3);
+
+            $x = $this->n
+                * $this->a1
+                * (1.0 - $this->a2 * $this->t * ($this->C1 - (8.0 - $this->t + 8.0 * $this->c) * $this->a2 * $this->C2));
+
+            $y -= $this->m0
+                - $this->n * $this->tn * $this->a2 * (0.5 + (5.0 - $this->t + 6. * $this->c) * $this->a2 * $this->C3);
         }
 
         $p->x = $this->a * $x + $this->x0;
@@ -111,16 +120,19 @@ class Cass
     {
         $p->x -= $this->x0;
         $p->y -= $this->y0;
+
         $x = $p->x / $this->a;
         $y = $p->y / $this->a;
 
         if ($this->sphere) {
             $this->dd = $y + $this->lat0;
+
             $phi = asin(sin($this->dd) * cos($x));
             $lam = atan2(tan($x), cos($this->dd));
         } else {
             // ellipsoid
             $ph1 = Common::pj_inv_mlfn($this->m0 + $y, $this->es, $this->en);
+
             $this->tn = tan($ph1);
             $this->t = $this->tn * $this->tn;
             $this->n = sin($ph1);
@@ -129,6 +141,7 @@ class Cass
             $this->r *= (1.0 - $this->es) * $this->n;
             $this->dd = $x / $this->n;
             $this->d2 = $this->dd * $this->dd;
+
             $phi = $ph1 - ($this->n * $this->tn / $this->r) * $this->d2 * (0.5 - (1.0 + 3.0 * $this->t) * $this->d2 * $this->C3);
             $lam = $this->dd * (1.0 + $this->t * $this->d2 * (-$this->C4 + (1.0 + 3. * $this->t) * $this->d2 * $this->C5)) / cos($ph1);
         }

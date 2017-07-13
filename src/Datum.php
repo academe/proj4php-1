@@ -6,8 +6,10 @@ namespace proj4php;
  * Author : Julien Moquet
  * 
  * Inspired by Proj4js from Mike Adair madairATdmsolutions.ca
- * and Richard Greenwood rich@greenwoodma$p->com 
- * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html 
+ * and Richard Greenwood rich@greenwoodma$p->com
+ * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html
+ *
+ * Geodetic Datum
  */
 
 use Exception;
@@ -223,6 +225,15 @@ class Datum
      *    Y         : Calculated Geocentric Y coordinate, in meters    (output)
      *    Z         : Calculated Geocentric Z coordinate, in meters    (output)
      *
+     * FIXME: this is misusing x, y and z by using the single Point object to represent
+     * both geodetic and geocentric coordinates. Given an object, you have not way to
+     * knwow what it contains. Instead, we should have separate classes for the two
+     * coordinate systems so we can pass the right type of value objects around.
+     * Each coordinate system can then probably convert in from the other system given
+     * a Datum, e.g. $geodetic = LatLong::fromGeocentric->($geocentric, $datum)
+     * Both coordinate types should be derived from a common Point interface, so they
+     * can be used interchangeably, with appropriate conversions happening where
+     * needed.
      */
     public function geodetic_to_geocentric($p)
     {

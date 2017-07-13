@@ -105,7 +105,6 @@ class Proj4php
         $this->defs[$key] = $data;
     }
 
-
     protected function initDatum()
     {
         $default_datums = [
@@ -585,6 +584,7 @@ class Proj4php
         }
 
         // Do we need to go through geocentric coordinates?
+        // TODO: the datum compare function should be able to tell us this.
         if ($source->es != $dest->es || $source->a != $dest->a
             || $source->datum_type == Common::PJD_3PARAM
             || $source->datum_type == Common::PJD_7PARAM
