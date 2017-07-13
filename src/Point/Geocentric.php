@@ -3,7 +3,7 @@
 namespace proj4php\Point;
 
 /**
- * An Geocentric ECEF (Earth Centred Earth Fixed) point value object.
+ * A Geocentric ECEF (Earth Centred, Earth Fixed) cartesian coordinate object.
  * This is a geocentric coordinate based on X, Y and Z.
  * See https://en.wikipedia.org/wiki/ECEF
  *
@@ -17,27 +17,28 @@ use proj4php\Datum;
 class Geocentric
 {
     /**
-     * X ordinate.
+     * X ordinate, in metres.
      * Centre of Earth to prime meridian on equitorial plane.
      * Also direction of major axis, a.
      */
     protected $x;
 
     /**
-     * Y ordinate.
+     * Y ordinate, in metres.
      * Centre of Earth to perpendictar to prime meridian on equitorial plane.
      */
     protected $y;
 
     /**
-     * Z ordinate.
+     * Z ordinate, in metres.
      * Centre of Earth to North pole.
-     * Also direction of manor axis, b.
+     * Also same direction as minor axis, b.
      */
     protected $z;
 
     /**
      * This datum this point is defined in.
+     * The point needs a datum to be meaningful.
      */
     protected $datum;
 
@@ -58,13 +59,16 @@ class Geocentric
 
     /**
      * Shift this point to a new datum.
+     *
+     * @param Datum The new datum to shift to.
+     * @return self A clone of self with the coordinate shifted and the new datum connected.
      */
     public function shiftDatum(Datum $datum)
     {
         // The returned point will be a clone.
         $point = $this->getClone();
 
-        // TODO: Only if the datum is different, do the point coordinates
+        // TODO: Only if the new datum is different, do the point coordinates
         // need shifting.
 
         if ($datum !== $this->datum) { // Probably need to use a comparison method.
@@ -77,6 +81,9 @@ class Geocentric
         return $point;
     }
 
+    /**
+     * @return self A simple clone of self; a convenience method.
+     */
     protected function getClone()
     {
         return clone $this;
@@ -84,6 +91,9 @@ class Geocentric
 
     /**
      * Set a datum without shifting any values.
+     *
+     * @param Datum|null $datum The new datum to use for the current coordinates.
+     * @return self Clone of self with the new datum set.
      */
     public function withDatum(Datum $datum)
     {
@@ -92,12 +102,20 @@ class Geocentric
 
     /**
      * Set a datum without shifting any values.
+     *
+     * @param Datum|null $datum The new datum to use for the current coordinates.
+     * @return self
      */
     protected function setDatum(Datum $datum)
     {
         $this->datum = $datum;
+
+        return $this;
     }
 
+    /**
+     * @return Datum|null The current defined datum.
+     */
     protected function getDatum()
     {
         return $this->datum;
@@ -129,6 +147,9 @@ class Geocentric
 
     /**
      * Clone with a new X ordinate.
+     *
+     * @param float|int|string|null $x The ordinate value, castable to float.
+     * @return self A clone of self with the new X ordinate
      */
     public function withX($x)
     {
@@ -137,6 +158,9 @@ class Geocentric
 
     /**
      * Set the X ordinate.
+     *
+     * @param float|int|string|null $x The ordinate value, castable to float.
+     * @return self
      */
     protected function setX($x)
     {
@@ -145,6 +169,9 @@ class Geocentric
         return $this;
     }
 
+    /**
+     * @return float|null Return just the x ordinate.
+     */
     protected function getX()
     {
         return $this->x;
@@ -152,6 +179,9 @@ class Geocentric
 
     /**
      * Clone with a new Y ordinate.
+     *
+     * @param float|int|string|null $y The ordinate value, castable to float.
+     * @return self A clone of self with the new Y ordinate
      */
     public function withY($y)
     {
@@ -160,6 +190,9 @@ class Geocentric
 
     /**
      * Set the Y ordinate.
+     *
+     * @param float|int|string|null $y The ordinate value, castable to float.
+     * @return self
      */
     protected function setY($y)
     {
@@ -168,6 +201,9 @@ class Geocentric
         return $this;
     }
 
+    /**
+     * @return float|null Return just the y ordinate.
+     */
     protected function getY()
     {
         return $this->y;
@@ -175,6 +211,9 @@ class Geocentric
 
     /**
      * Clone with a new Z ordinate.
+     *
+     * @param float|int|string|null $z The ordinate value, castable to float.
+     * @return self A clone of self with the new Z ordinate
      */
     public function withZ($z)
     {
@@ -183,6 +222,9 @@ class Geocentric
 
     /**
      * Set the Z ordinate.
+     *
+     * @param float|int|string|null $z The ordinate value, castable to float.
+     * @return self
      */
     protected function setZ($z)
     {
@@ -191,6 +233,9 @@ class Geocentric
         return $this;
     }
 
+    /**
+     * @return float|null Return just the z ordinate.
+     */
     protected function getZ()
     {
         return $this->z;
@@ -198,15 +243,28 @@ class Geocentric
 
     /**
      * Set x, y, z, all defaulting to null.
+     * @param string|array|float|int|null The x ordinate, or the coordinate as an array or string.
+     * @param string|float|int|null The y ordinate.
+     * @param string|float|int|null The z ordinate.
+     * @return self
      */
     public function withCoords($x = null, $y = null, $z = null)
     {
         return $this->getClone()->setCoords($x, $y, $z);
     }
 
+    /**
+     * Set the full coordinate.
+     * Either pass all three ordinates separately, or as one parameter.
+     *
+     * @param string|array|float|int|null The x ordinate, or the coordinate as an array or string.
+     * @param string|float|int|null The y ordinate.
+     * @param string|float|int|null The z ordinate.
+     * @return self
+     */
     protected function setCoords($x = null, $y = null, $z = null)
     {
-        // The first (and only) parameter could be a string.
+        // The first (and only) parameter can be a string for parsing.
         // We will assume it is a list of values.
 
         if (is_string($x) && $y === null && $z === null) {
@@ -250,6 +308,9 @@ class Geocentric
         return $this;
     }
 
+    /**
+     * @return array Return the coordinates as an array.
+     */
     public function getCoords()
     {
         return [

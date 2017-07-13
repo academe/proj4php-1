@@ -26,6 +26,8 @@ class Proj4php
 
     public static $proj = [];
 
+    public static $wktProjections;
+
     // Default projection always created on instantiation.
     // Used as a fallback when projections cannot be created.
     // @type Proj
@@ -507,7 +509,7 @@ class Proj4php
             $point->y *= Common::R2D;
 
             self::reportDebug(sprintf(
-                "convert to longlat => $f,$f\r\n",
+                "convert to longlat => %f,%f\r\n",
                 $point->x,
                 $point->y
             ));
