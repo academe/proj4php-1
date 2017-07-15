@@ -24,10 +24,19 @@ class EllipsoidTest extends PHPUnit_Framework_TestCase
         $this->assertFalse($e->isSphere());
     }
 
+    /**
+     * Test a sphere can be created.
+     */
     public function testIsSphere()
     {
         $e = Ellipsoid::fromAB(6356752, 6356752);
 
         $this->assertTrue($e->isSphere());
+
+        // Inverse flattening is infinite.
+        $this->assertNull($e->getRf());
+
+        // Flattening is zero.
+        $this->assertEquals($e->getF(), 0);
     }
 }

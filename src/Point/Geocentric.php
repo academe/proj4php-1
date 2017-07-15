@@ -59,6 +59,7 @@ class Geocentric
 
     /**
      * Shift this point to a new datum.
+     * A data shift needs to happen via WGS84 as the intermediate.
      *
      * @param Datum The new datum to shift to.
      * @return self A clone of self with the coordinate shifted and the new datum connected.
@@ -68,11 +69,13 @@ class Geocentric
         // The returned point will be a clone.
         $point = $this->getClone();
 
-        // TODO: Only if the new datum is different, do the point coordinates
-        // need shifting.
+        // TODO: Only if the new datum is different, does the point need shifting.
 
-        if ($datum !== $this->datum) { // Probably need to use a comparison method.
+        if ($datum !== $this->datum) { // Probably need to use a comparison method, to compare within a tolorance.
             $point = $point->withDatum($datum);
+
+            // TODO: are either datums WGS84? Only one shift will be needed if so,
+            // otherwise two shifts will be needed.
 
             // TODO: Do the datum shifts using the 3- or 7-value parameters.
             // This is done via the reference datum, so involves two steps.
@@ -170,7 +173,7 @@ class Geocentric
     }
 
     /**
-     * @return float|null Return just the x ordinate.
+     * @return floatl Return just the x ordinate.
      */
     protected function getX()
     {
@@ -180,7 +183,7 @@ class Geocentric
     /**
      * Clone with a new Y ordinate.
      *
-     * @param float|int|string|null $y The ordinate value, castable to float.
+     * @param float|int|string $y The ordinate value, castable to float.
      * @return self A clone of self with the new Y ordinate
      */
     public function withY($y)
@@ -191,7 +194,7 @@ class Geocentric
     /**
      * Set the Y ordinate.
      *
-     * @param float|int|string|null $y The ordinate value, castable to float.
+     * @param float|int|string $y The ordinate value, castable to float.
      * @return self
      */
     protected function setY($y)
@@ -202,7 +205,7 @@ class Geocentric
     }
 
     /**
-     * @return float|null Return just the y ordinate.
+     * @return float Return just the y ordinate.
      */
     protected function getY()
     {
@@ -212,7 +215,7 @@ class Geocentric
     /**
      * Clone with a new Z ordinate.
      *
-     * @param float|int|string|null $z The ordinate value, castable to float.
+     * @param float|int|string $z The ordinate value, castable to float.
      * @return self A clone of self with the new Z ordinate
      */
     public function withZ($z)
@@ -223,7 +226,7 @@ class Geocentric
     /**
      * Set the Z ordinate.
      *
-     * @param float|int|string|null $z The ordinate value, castable to float.
+     * @param float|int|string $z The ordinate value, castable to float.
      * @return self
      */
     protected function setZ($z)
@@ -234,7 +237,7 @@ class Geocentric
     }
 
     /**
-     * @return float|null Return just the z ordinate.
+     * @return floatl Return just the z ordinate.
      */
     protected function getZ()
     {
@@ -243,12 +246,12 @@ class Geocentric
 
     /**
      * Set x, y, z, all defaulting to null.
-     * @param string|array|float|int|null The x ordinate, or the coordinate as an array or string.
+     * @param string|array|float|int The x ordinate, or the coordinate as an array or string.
      * @param string|float|int|null The y ordinate.
      * @param string|float|int|null The z ordinate.
      * @return self
      */
-    public function withCoords($x = null, $y = null, $z = null)
+    public function withCoords($x, $y = null, $z = null)
     {
         return $this->getClone()->setCoords($x, $y, $z);
     }
@@ -257,12 +260,12 @@ class Geocentric
      * Set the full coordinate.
      * Either pass all three ordinates separately, or as one parameter.
      *
-     * @param string|array|float|int|null The x ordinate, or the coordinate as an array or string.
+     * @param string|array|float|int The x ordinate, or the coordinate as an array or string.
      * @param string|float|int|null The y ordinate.
      * @param string|float|int|null The z ordinate.
      * @return self
      */
-    protected function setCoords($x = null, $y = null, $z = null)
+    protected function setCoords($x, $y = null, $z = null)
     {
         // The first (and only) parameter can be a string for parsing.
         // We will assume it is a list of values.

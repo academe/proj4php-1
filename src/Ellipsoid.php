@@ -39,13 +39,13 @@ class Ellipsoid
      * First eccentricity squared.
      * Derived.
      */
-    protected $es2;
+    protected $es;
 
     /**
      * Second eccentricity squared.
      * Derived.
      */
-    protected $ep2;
+    protected $es2;
 
     /**
      * Tolerance (decimal digits) used to compare equality of floats.
@@ -93,8 +93,8 @@ class Ellipsoid
     protected function resetDerived()
     {
         $this->b = null;
-        $this->es2 = null;
-        $this->ep2 = null;
+        $this->es = null;
+        $this->e22 = null;
 
         return $this;
     }
@@ -234,26 +234,32 @@ class Ellipsoid
     /**
      * First eccentricity squared.
      */
+    public function getEs()
+    {
+        if ($this->es === null) {
+            $a2 = $this->getA() * $this->getA();
+            $b2 = $this->getB() * $this->getB();
+
+            $this->es = ($a2 - $b2) / $a2;
+        }
+
+        return $this->es;
+    }
+
+    /**
+     * Second eccentricity squared.
+     */
     public function getEs2()
     {
         if ($this->es2 === null) {
             $a2 = $this->getA() * $this->getA();
             $b2 = $this->getB() * $this->getB();
 
-            $this->es2 = ($a2 - $b2) / $a2;
+            $this->es2 = ($a2 - $b2) / $b2;
         }
 
         return $this->es2;
     }
-
-/*
-        $this->firstEccentricitySquared = (($this->semiMajorAxis->getValue() * $this->semiMajorAxis->getValue()) -
-                                           ($this->semiMinorAxis->getValue() * $this->semiMinorAxis->getValue())) /
-                                          ($this->semiMajorAxis->getValue() * $this->semiMajorAxis->getValue());
-        $this->secondEccentricitySquared = (($this->semiMajorAxis->getValue() * $this->semiMajorAxis->getValue()) -
-                                            ($this->semiMinorAxis->getValue() * $this->semiMinorAxis->getValue())) /
-                                           ($this->semiMinorAxis->getValue() * $this->semiMinorAxis->getValue());
-*/
 
     public function getParameters()
     {
