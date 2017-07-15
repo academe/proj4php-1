@@ -47,6 +47,9 @@ class Ellipsoid
      */
     protected $ep2;
 
+    /**
+     * Tolerance (decimal digits) used to compare equality of floats.
+     */
     protected $epsilon = 1E-6;
 
     protected $defaultEllipsoid = [

@@ -46,11 +46,11 @@ class Geocentric
      * @param array|string|null $coords
      * @param Datum|null $datum
      */
-    public function __construct($coords = null, Datum $datum = null)
+    public function __construct($coords, Datum $datum = null)
     {
-        if (isset($coords)) {
-            $this->setCoords($coords);
-        }
+        $this->setCoords($coords);
+
+        // TODO: set a default WGS84 datum.
 
         if (isset($datum)) {
             $this->setDatum($datum);
@@ -141,7 +141,7 @@ class Geocentric
 
             return $ordinate;
         } else {
-            return null;
+            throw new \Exception(sprintf('Ordinate %s cannot be null', $name));
         }
     }
 
@@ -159,7 +159,7 @@ class Geocentric
     /**
      * Set the X ordinate.
      *
-     * @param float|int|string|null $x The ordinate value, castable to float.
+     * @param float|int|string $x The ordinate value, castable to float.
      * @return self
      */
     protected function setX($x)
