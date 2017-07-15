@@ -19,7 +19,25 @@ class Datum
     /**
      * Short code used to find the datum.
      */
-    public $datum_code;
+    protected $datumCode;
+
+    /**
+     * Long name for the datum.
+     */
+    protected $datumName;
+
+    /**
+     * The datum ellipsoid.
+     */
+    protected $ellipsoid;
+
+    /**
+     * The datum centre-shifting parameters (to WGS84).
+     * Either three or seven parameters.
+     */
+    protected $shiftParameters;
+
+
 
     /**
      * The type of the datum, derived from the parameters supplied.

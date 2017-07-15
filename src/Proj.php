@@ -669,9 +669,11 @@ class Proj
         }
 
         // used in geocentric
+        // a squared.
         $this->a2 = $this->a * $this->a;
 
         // used in geocentric
+        // b squared.
         $this->b2 = $this->b * $this->b;
 
         // First eccentricity squared: e ^ 2
