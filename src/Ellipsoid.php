@@ -36,16 +36,18 @@ class Ellipsoid
     protected $b;
 
     /**
-     * First essentricity squared.
+     * First eccentricity squared.
      * Derived.
      */
     protected $es2;
 
     /**
-     * Second essentricity squared.
+     * Second eccentricity squared.
      * Derived.
      */
     protected $ep2;
+
+    protected $epsilon = 1E-6;
 
     protected $defaultEllipsoid = [
         6378137.0,
@@ -66,6 +68,11 @@ class Ellipsoid
             list($a, $rf, $code, $name) = $this->defaultEllipsoid;
         }
 
+        $this->setParameters($a, $rf, $code, $name);
+    }
+
+    protected function setParameters($a, $rf, $code, $name)
+    {
         $this->setA($a);
         $this->setRf($rf);
         $this->code = $code;
@@ -129,7 +136,12 @@ class Ellipsoid
 
     public function getF()
     {
-        return 1 / $this->rf;
+        if ($this->getRf() === null) {
+            // No flattening, i.e. a sphere.
+            return 0;
+        } else {
+            return 1 / $this->rf;
+        }
     }
 
     /**
@@ -154,7 +166,7 @@ class Ellipsoid
 
     public static function fromBRf($b, $rf, $code = null, $name = null)
     {
-        $instance = new static(null, null, $code, $name);
+        $instance = new static($b, $rf, $code, $name);
         return $instance->setBRf($b, $rf);
     }
 
@@ -169,8 +181,15 @@ class Ellipsoid
 
     protected function setAB($a, $b)
     {
-        // Derive rf fropm the minor axes.
-        $rf = $a / ($a - $b);
+        // Derive rf from the major and minor axes.
+        // If we are dealing with a sphere, then rf will be infinite, so
+        // catch that.
+
+        if (abs($a - $b) > $this->epsilon) {
+            $rf = $a / ($a - $b);
+        } else {
+            $rf = null;
+        }
 
         return $this->resetDerived()
             ->setA($a)
@@ -191,7 +210,7 @@ class Ellipsoid
     }
 
     /**
-     * Get the semi-minor axis.
+     * Get the semi-minor axis, b.
      * Derived from a and rf.
      */
     public function getB()
@@ -210,7 +229,7 @@ class Ellipsoid
     }
 
     /**
-     * First essentricity squared.
+     * First eccentricity squared.
      */
     public function getEs2()
     {
@@ -222,13 +241,43 @@ class Ellipsoid
         }
 
         return $this->es2;
+    }
 
+/*
+        $this->firstEccentricitySquared = (($this->semiMajorAxis->getValue() * $this->semiMajorAxis->getValue()) -
+                                           ($this->semiMinorAxis->getValue() * $this->semiMinorAxis->getValue())) /
+                                          ($this->semiMajorAxis->getValue() * $this->semiMajorAxis->getValue());
+        $this->secondEccentricitySquared = (($this->semiMajorAxis->getValue() * $this->semiMajorAxis->getValue()) -
+                                            ($this->semiMinorAxis->getValue() * $this->semiMinorAxis->getValue())) /
+                                           ($this->semiMinorAxis->getValue() * $this->semiMinorAxis->getValue());
+*/
+
+    public function getParameters()
+    {
+        return [
+            'a' => $this->getA(),
+            'rf' => $this->getRf(),
+            'code' => $this->getCode(),
+            'name' => $this->getName(),
+        ];
     }
 
     /**
-     * Determine if the spheroid is a sphere, within a tollerance.
+     * Determine if the spheroid is a sphere, within a tolerance.
+     * TODO: Where should the tolerance come from? The current PHP setting?
      */
     public function isSphere()
     {
+        return abs($this->getA() - $this->getB()) < $this->epsilon;
+    }
+
+    public function getCode()
+    {
+        return $this->code;
+    }
+
+    public function getName()
+    {
+        return $this->code;
     }
 }
