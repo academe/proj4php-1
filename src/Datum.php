@@ -34,6 +34,9 @@ class Datum
     const PPM           = 'ppm';
     const MULTIPLIER    = 'multiplier';
 
+    const FORWARD = 1;
+    const INVERSE = -1;
+
     /**
      * Short code used to find the datum.
      */
@@ -77,26 +80,36 @@ class Datum
         $this->setShiftParams($shiftParams);
     }
 
-    public function getDisplacementParameters()
+    public function getDisplacementParameters($direction = self::FORWARD)
     {
-        return $this->displacementParameters;
+        $dir_factor = ($direction == self::FORWARD ? 1 : -1);
+
+        return array_map(
+            function ($m) use ($dir_factor) {return $dir_factor * $m;},
+            $this->displacementParameters
+        );
     }
 
     /**
      *
      */
-    public function getRotationalParameters($unit = self::ARCSECONDS)
+    public function getRotationalParameters($unit = self::ARCSECONDS, $direction = self::FORWARD)
     {
+        $dir_factor = ($direction == self::FORWARD ? 1 : -1);
+
         if ($unit == self::RADIANS) {
             // Convert units; seconds of arc to radians.
             return array_map(
-                function ($m) {return deg2rad($m / 60);},
+                function ($m) use ($dir_factor) {return $dir_factor * deg2rad($m / 60);},
                 $this->rotationalParameters
             );
         }
 
         if ($unit == self::ARCSECONDS) {
-            return $this->rotationalParameters;
+            return array_map(
+                function ($m) use ($dir_factor) {return $dir_factor * $m;},
+                $this->rotationalParameters
+            );
         }
 
         throw new \Exception(sprintf('Unsupported units "%s"', $unit));
@@ -105,10 +118,12 @@ class Datum
     /**
      *
      */
-    public function getScalarParameter($unit = self::PPM)
+    public function getScalarParameter($unit = self::PPM, $direction = self::FORWARD)
     {
+        $dir_factor = ($direction == self::FORWARD ? 1 : -1);
+
         if ($unit == self::MULTIPLIER) {
-            return 1.0 + ($this->scalerParameter  / 1e6);
+            return 1.0 + (($dir_factor * $this->scalerParameter)  / 1e6);
         }
 
         if ($unit == self::PPM) {
@@ -218,6 +233,31 @@ class Datum
 
         return static::SHIFT_PARAM_COUNT_NONE;
     }
+
+    /**
+     * Checks if this datum is the same as the supplied caparison datum.
+     */
+    public function isSame(Datum $datum)
+    {
+        // Quick check - does they have a different number of Bursa-Wolf parameters?
+        if ($this->getShiftParameterCount() !== $datum->getShiftParameterCount()) {
+            return false;
+        }
+
+        // If the parameters (3 or 7) are not identical then we will take the
+        // datums to be different. We may want to check each parameter within
+        // a tolerance, but we'll see how this goes.
+        // There are some notes that WGS84 and GRS80 should be considered as the
+        // same datum, even though their parameters are slightly different.
+        if ($this->getShiftParameters() !== $datum->getShiftParameters()) {
+            return false;
+        }
+
+        // Can't find any differences in the shifting Bursa-Wolf parameters, so assume
+        // they are the same. We ignaore the names of the datums.
+        return true;
+    }
+
 
 
 

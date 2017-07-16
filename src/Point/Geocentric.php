@@ -62,7 +62,7 @@ class Geocentric
      * A data shift needs to happen via WGS84 as the intermediate.
      *
      * @param Datum The new datum to shift to.
-     * @return self A clone of self with the coordinate shifted and the new datum connected.
+     * @return self A clone of self with the coordinate shifted and the new datum.
      */
     public function shiftDatum(Datum $datum)
     {
@@ -71,7 +71,7 @@ class Geocentric
 
         // TODO: Only if the new datum is different, does the point need shifting.
 
-        if ($datum !== $this->datum) { // Probably need to use a comparison method, to compare within a tolorance.
+        if (! $this->datum->isSame($datum)) {
             $point = $point->withDatum($datum);
 
             // TODO: are either datums WGS84? Only one shift will be needed if so,
@@ -97,10 +97,10 @@ class Geocentric
             $datum_coords = static::coordsFromWgs84($wgs84_coords, $datum);
 
             // Set the coordinate and datum on the cloned point.
-            return $point->setCoords($datum_coords)->setDatum($datum);
+            return $point->setCoords($datum_coords);
         }
 
-        return $point;
+        return $point->setDatum($datum);
     }
 
     /**
@@ -108,14 +108,33 @@ class Geocentric
      */
     public static function coordsToWgs84($coords, Datum $datum)
     {
+        return static::helmertTransform($coords, $datum, true);
+    }
+
+    /**
+     * Convert a set of coordinates (x,y,z) from WGS84 coordinates using the given datum.
+     */
+    public static function coordsFromWgs84($coords, Datum $datum)
+    {
+        return static::helmertTransform($coords, $datum, false);
+    }
+
+    /**
+     * Perform a Helmert transform om a set of coordinates using the Bursa-Wolf parameters
+     * provided by the datum.
+     */
+    public static function helmertTransform($coords, Datum $datum, $forward = true)
+    {
         $count = $datum->getShiftParameterCount();
+
+        $direction = ($forward ? Datum::FORWARD : Datum::INVERSE);
 
         // If there are no shifting parameters, then we are already on WGS84.
         if ($count == Datum::SHIFT_PARAM_COUNT_NONE) {
             return $coords;
         }
 
-        list($Dx, $Dy, $Dz) = $datum->getDisplacementParameters();
+        list($Dx, $Dy, $Dz) = $datum->getDisplacementParameters($direction);
 
         // TODO: use a generic mapping function for $coords so we can deal with
         // any format in the interface.
@@ -132,10 +151,10 @@ class Geocentric
 
         if ($count == Datum::SHIFT_PARAM_COUNT_7) {
             // Get the rotational parameters in radians.
-            list($Rx, $Ry, $Rz) = $datum->getRotationalParameters(Datum::RADIANS);
+            list($Rx, $Ry, $Rz) = $datum->getRotationalParameters(Datum::RADIANS, $direction);
 
             // Get the scalar parameter as a multiplier.
-            $M_BF = $datum->getScalarParameter(Datum::MULTIPLIER);
+            $M_BF = $datum->getScalarParameter(Datum::MULTIPLIER, $direction);
 
             return [
                 $M_BF * ($x         - $Rz * $y  + $Ry * $z) + $Dx,
@@ -143,12 +162,6 @@ class Geocentric
                 $M_BF * (-$Ry * $x  + $Rx * $y  + $z      ) + $Dz,
             ];
         }
-    }
-
-    public function coordsFromWgs84($coords, Datum $datum)
-    {
-        // TODO: do the reverse calculations...
-        return $coords;
     }
 
     /**
