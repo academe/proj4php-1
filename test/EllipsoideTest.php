@@ -1,10 +1,12 @@
 <?php
 
+namespace proj4php;
+
 include(__DIR__ . "/../vendor/autoload.php");
 
 use proj4php\Ellipsoid;
 
-class EllipsoidTest extends PHPUnit_Framework_TestCase
+class EllipsoidTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Default settings for an ellipsoid.

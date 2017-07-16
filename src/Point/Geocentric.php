@@ -43,7 +43,7 @@ class Geocentric
     protected $datum;
 
     /**
-     * @param array|string|null $coords
+     * @param array|string $coords
      * @param Datum|null $datum
      */
     public function __construct($coords, Datum $datum = null)
@@ -69,31 +69,15 @@ class Geocentric
         // The returned point will be a clone.
         $point = $this->getClone();
 
-        // TODO: Only if the new datum is different, does the point need shifting.
+        // Only if the new datum is different, does the point need shifting.
 
         if (! $this->datum->isSame($datum)) {
             $point = $point->withDatum($datum);
 
-            // TODO: are either datums WGS84? Only one shift will be needed if so,
-            // otherwise two shifts will be needed.
-
-            // TODO: Do the datum shifts using the 3- or 7-value parameters.
-            // This is done via the reference datum, so involves two steps.
-
-            // Instances:
-            // 1. Both datums are the same - no shift.
-            // 2. Just the source is WGS84 - shift from only.
-            // 3. Just the destination is WGS84 - shift to only.
-            // 4. Neither source nor destination is WGS84 - two shifts.
-            //
-            // However, if either end is WGS84, then the shift parameters will be a
-            // trivial calculation anyway, so we will not loose much processing by
-            // running them.
-
-            // Convert coordinats to WGS84.
+            // Shift coordinats to WGS84.
             $wgs84_coords = static::coordsToWgs84($this->getCoords(), $this->getDatum());
 
-            // Convert from WGS84 to the new datum.
+            // Shift from WGS84 to the new datum.
             $datum_coords = static::coordsFromWgs84($wgs84_coords, $datum);
 
             // Set the coordinate and datum on the cloned point.
@@ -253,7 +237,7 @@ class Geocentric
     }
 
     /**
-     * @return floatl Return just the x ordinate.
+     * @return float Return just the x ordinate.
      */
     protected function getX()
     {
@@ -401,5 +385,15 @@ class Geocentric
             'y' => $this->getY(),
             'z' => $this->getZ(),
         ];
+    }
+
+    /**
+     * Create a Geocentric coordinate from a Geodetic ccordinate.
+     */
+    public static function fromGeodetic(Geodetic $geodetic)
+    {
+        $lat = $geodetic->getLat(GEODETIC::RADIANS);
+        $long = $geodetic->getLong(GEODETIC::RADIANS);
+        $height = $geodetic->getHeight();
     }
 }

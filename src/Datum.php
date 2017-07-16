@@ -239,7 +239,7 @@ class Datum
      */
     public function isSame(Datum $datum)
     {
-        // Quick check - does they have a different number of Bursa-Wolf parameters?
+        // Quick check - do they have a different number of Bursa-Wolf parameters?
         if ($this->getShiftParameterCount() !== $datum->getShiftParameterCount()) {
             return false;
         }
@@ -743,6 +743,8 @@ class Datum
     }
 
     /**
+     * Datum shift.
+     *
      * p = point to transform in geocentric coordinates (x,y,z)
      * Note: this will change the point by reference.
      */
@@ -786,6 +788,8 @@ class Datum
     }
 
     /**
+     * Datum shift.
+     *
      * coordinate system definition,
      * point to transform in geocentric coordinates (x,y,z)
      * Note: this will change the point by reference.
