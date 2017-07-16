@@ -18,10 +18,21 @@ class Datum
 {
     /**
      * Number of shift parameters we have.
+     * WGS84 will return shift parameters of "none", as there is
+     * no transform to do..
      */
+    const SHIFT_PARAM_COUNT_NONE    = 0;
     const SHIFT_PARAM_COUNT_3       = 3;
     const SHIFT_PARAM_COUNT_7       = 7;
-    const SHIFT_PARAM_COUNT_NONE    = 0;
+
+    /**
+     * Defining various units.
+     */
+    const ARCSECONDS    = 'arcseconds';
+    const RADIANS       = 'radians';
+
+    const PPM           = 'ppm';
+    const MULTIPLIER    = 'multiplier';
 
     /**
      * Short code used to find the datum.
@@ -46,15 +57,16 @@ class Datum
 
     /**
      * The datum rotation parameters (to WGS84)
-     * Shifts [Rx, Ry, Rz] in seconds.
+     * Shifts [Rx, Ry, Rz] in seconds of arc.
      */
-    protected $rotationParameters = [0, 0, 0];
+    protected $rotationalParameters = [0, 0, 0];
 
     /**
      * The datum scale parameter.
-     * Scales M (no units).
+     * Scale change in PPM.
+     * M_BF
      */
-    protected $scaleParameter = 1.0;
+    protected $scalerParameter = 1.0;
 
     /**
      * @param Ellipsoid $ellipsoid
@@ -63,6 +75,47 @@ class Datum
     public function __construct(Ellipsoid $ellipsoid, $shiftParams, $code = null, $name = null)
     {
         $this->setShiftParams($shiftParams);
+    }
+
+    public function getDisplacementParameters()
+    {
+        return $this->displacementParameters;
+    }
+
+    /**
+     *
+     */
+    public function getRotationalParameters($unit = self::ARCSECONDS)
+    {
+        if ($unit == self::RADIANS) {
+            // Convert units; seconds of arc to radians.
+            return array_map(
+                function ($m) {return deg2rad($m / 60);},
+                $this->rotationalParameters
+            );
+        }
+
+        if ($unit == self::ARCSECONDS) {
+            return $this->rotationalParameters;
+        }
+
+        throw new \Exception(sprintf('Unsupported units "%s"', $unit));
+    }
+
+    /**
+     *
+     */
+    public function getScalarParameter($unit = self::PPM)
+    {
+        if ($unit == self::MULTIPLIER) {
+            return 1.0 + ($this->scalerParameter  / 1e6);
+        }
+
+        if ($unit == self::PPM) {
+            return $this->scalerParameter;
+        }
+
+        throw new \Exception(sprintf('Unsupported units "%s"', $unit));
     }
 
     protected function setShiftParams($shiftParams)
@@ -113,10 +166,10 @@ class Datum
             list(
                 // Skip first three parameters we already have..
                 ,,,
-                $this->rotationParameters[0],
-                $this->rotationParameters[1],
-                $this->rotationParameters[2],
-                $this->scaleParameter
+                $this->rotationalParameters[0],
+                $this->rotationalParameters[1],
+                $this->rotationalParameters[2],
+                $this->scalerParameter
             ) = $shiftParams;
         }
 
@@ -138,8 +191,8 @@ class Datum
         if ($count == static::SHIFT_PARAM_COUNT_7) {
             return array_merge(
                 $this->displacementParameters,
-                $this->rotationParameters,
-                [$this->scaleParameter]
+                $this->rotationalParameters,
+                [$this->scalerParameter]
             );
         }
 
@@ -151,9 +204,9 @@ class Datum
      */
     public function getShiftParameterCount()
     {
-        $r = $this->rotationParameters;
+        $r = $this->rotationalParameters;
 
-        if ($r[0] != 0 || $r[1] || $r[2] || $this->scaleParameter != 1.0) {
+        if ($r[0] != 0 || $r[1] || $r[2] || $this->scalerParameter != 1.0) {
             return static::SHIFT_PARAM_COUNT_7;
         }
 

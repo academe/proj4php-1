@@ -79,9 +79,76 @@ class Geocentric
 
             // TODO: Do the datum shifts using the 3- or 7-value parameters.
             // This is done via the reference datum, so involves two steps.
+
+            // Instances:
+            // 1. Both datums are the same - no shift.
+            // 2. Just the source is WGS84 - shift from only.
+            // 3. Just the destination is WGS84 - shift to only.
+            // 4. Neither source nor destination is WGS84 - two shifts.
+            //
+            // However, if either end is WGS84, then the shift parameters will be a
+            // trivial calculation anyway, so we will not loose much processing by
+            // running them.
+
+            // Convert coordinats to WGS84.
+            $wgs84_coords = static::coordsToWgs84($this->getCoords(), $this->getDatum());
+
+            // Convert from WGS84 to the new datum.
+            $datum_coords = static::coordsFromWgs84($wgs84_coords, $datum);
+
+            // Set the coordinate and datum on the cloned point.
+            return $point->setCoords($datum_coords)->setDatum($datum);
         }
 
         return $point;
+    }
+
+    /**
+     * Convert a set of coordinates (x,y,z) to WGS84 coordinates using the given datum.
+     */
+    public static function coordsToWgs84($coords, Datum $datum)
+    {
+        $count = $datum->getShiftParameterCount();
+
+        // If there are no shifting parameters, then we are already on WGS84.
+        if ($count == Datum::SHIFT_PARAM_COUNT_NONE) {
+            return $coords;
+        }
+
+        list($Dx, $Dy, $Dz) = $datum->getDisplacementParameters();
+
+        // TODO: use a generic mapping function for $coords so we can deal with
+        // any format in the interface.
+        list($x, $y, $z) = array_values($coords);
+
+        // Just linear shift parameters; no rotation.
+        if ($count == Datum::SHIFT_PARAM_COUNT_3) {
+            return [
+                $x + $Dx,
+                $y + $Dy,
+                $z + $Dz,
+            ];
+        }
+
+        if ($count == Datum::SHIFT_PARAM_COUNT_7) {
+            // Get the rotational parameters in radians.
+            list($Rx, $Ry, $Rz) = $datum->getRotationalParameters(Datum::RADIANS);
+
+            // Get the scalar parameter as a multiplier.
+            $M_BF = $datum->getScalarParameter(Datum::MULTIPLIER);
+
+            return [
+                $M_BF * ($x         - $Rz * $y  + $Ry * $z) + $Dx,
+                $M_BF * ($Rz * $x   + $y        - $Rx * $z) + $Dy,
+                $M_BF * (-$Ry * $x  + $Rx * $y  + $z      ) + $Dz,
+            ];
+        }
+    }
+
+    public function coordsFromWgs84($coords, Datum $datum)
+    {
+        // TODO: do the reverse calculations...
+        return $coords;
     }
 
     /**
