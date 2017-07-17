@@ -75,7 +75,7 @@ class Datum
      * @param Ellipsoid $ellipsoid
      * @param string|array $shiftParams the 3 or 7 shift parameters (to WGS84).
      */
-    public function __construct(Ellipsoid $ellipsoid, $shiftParams, $code = null, $name = null)
+    public function __construct(Ellipsoid $ellipsoid = null, $shiftParams = null, $code = null, $name = null)
     {
         $this->setEllipsoid($ellipsoid);
         $this->setShiftParams($shiftParams);
@@ -136,7 +136,14 @@ class Datum
 
     protected function setShiftParams($shiftParams)
     {
+        // If null, then default it to "no shift", i.e. WGS84.
+
+        if (! isset($shiftParams)) {
+            $shiftParams = [0.0, 0.0, 0.0];
+        }
+
         // If a CSV or space-separated string, then explode it to an array.
+
         if (is_string($shiftParams)) {
             if (strpos($shiftParams, ',') !== false) {
                 // Comma-separeted.
@@ -264,8 +271,14 @@ class Datum
         return $this->getEllipsoid()->getA();
     }
 
-    protected function setEllipsoid(Ellipsoid $ellipsoid)
+    protected function setEllipsoid(Ellipsoid $ellipsoid = null)
     {
+        // If no ellipsoid is give then provide a default.
+        if (! isset($ellipsoid)) {
+            // The default will be WGS84.
+            $ellipsoid = new Ellipsoid();
+        }
+
         $this->ellipsoid = $ellipsoid;
         return $this;
     }
