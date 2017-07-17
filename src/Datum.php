@@ -271,11 +271,6 @@ class Datum
         return $this->ellipsoid;
     }
 
-    public function getEs()
-    {
-        return $this->getEllipsoid()->getEs();
-    }
-
     public function getA()
     {
         return $this->getEllipsoid()->getA();
@@ -284,6 +279,21 @@ class Datum
     public function getB()
     {
         return $this->getEllipsoid()->getB();
+    }
+
+    public function getRf()
+    {
+        return $this->getEllipsoid()->getRf();
+    }
+
+    public function getEs()
+    {
+        return $this->getEllipsoid()->getEs();
+    }
+
+    public function getEs2()
+    {
+        return $this->getEllipsoid()->getEs2();
     }
 
     protected function setEllipsoid(Ellipsoid $ellipsoid = null)

@@ -416,4 +416,23 @@ class Geodetic
 
         return new self([rad2deg($lat), rad2deg($long), $height], $datum);
     }
+
+    /**
+     * Shift to a new datum.
+     */
+    public function shiftDatum(Datum $datum)
+    {
+        // Only if the new datum is different, does the point need shifting,
+        // so we can avoid some work by checking first.
+
+        if (! $this->getDatum()->isSame($datum)) {
+            $point = $this->fromGeocentric(
+                Geocentric::fromGeodetic($this)->shiftDatum($datum)
+            );
+        } else {
+            $point = $this->getClone()->setDatum($datum);
+        }
+
+        return $point;
+    }
 }
