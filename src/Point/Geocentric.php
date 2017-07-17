@@ -113,6 +113,8 @@ class Geocentric
 
         $direction = ($forward ? Datum::FORWARD : Datum::INVERSE);
 
+        $coords = static::validateCoords($coords);
+
         // If there are no shifting parameters, then we are already on WGS84.
         if ($count == Datum::SHIFT_PARAM_COUNT_NONE) {
             return $coords;
@@ -120,8 +122,6 @@ class Geocentric
 
         list($Dx, $Dy, $Dz) = $datum->getDisplacementParameters($direction);
 
-        // TODO: use a generic mapping function for $coords so we can deal with
-        // any format in the interface.
         list($x, $y, $z) = array_values($coords);
 
         // Just linear shift parameters; no rotation.
@@ -191,7 +191,7 @@ class Geocentric
     protected function validateOrdinate($ordinate, $name = 'unknown')
     {
         if (isset($ordinate)) {
-            // FIXME: make sure the string can converted to a float.
+            // Make sure the string can converted to a float.
             if (is_string($ordinate) || is_integer($ordinate)) {
                 $ordinate = floatval($ordinate);
             }
@@ -321,6 +321,55 @@ class Geocentric
     }
 
     /**
+     * Take x, y and z, and transform into an array after validating,
+     * expanding and reording if necessary.
+     */
+    protected static function validateCoords($x, $y = null, $z = null)
+    {
+        // The first (and only) parameter can be a string for parsing.
+
+        if ($y === null && $z === null) {
+            if (is_string($x) && $y === null && $z === null) {
+                if (strpos($x, ',') !== false) {
+                    // Split by commas.
+                    $x = array_map('trim', explode(',', $x));
+                } else {
+                    // Split by whitespace.
+                    $x = preg_split('/[\s]+/', trim($x));
+                }
+            }
+
+            // The first (and only) parameter can be an array.
+
+            if (is_array($x)) {
+                // Check if the array uses associative keys (x, y and z).
+                $assoc = [];
+                array_walk($x, function ($item, $key) use (&$assoc) {
+                    $lc = strtolower($key);
+                    if ($lc >= 'x' && $lc <= 'z') {
+                        // Initialise the array for the first element we encounter.
+                        if (! $assoc) {
+                            $assoc = ['x' => null, 'y' => null, 'z' => null];
+                        }
+                        $assoc[$lc] = $item;
+                    }
+                });
+
+                // Yes, we have found associative keys, and put them in order,
+                // so use the new ordered array.
+                if ($assoc) {
+                    $x = $assoc;
+                }
+
+                list($x, $y, $z) = array_pad(array_values($x), 3, null);
+            }
+        }
+
+        // Make sure all elements are floats.
+        return array_map('floatval', ['x' => $x, 'y' => $y, 'z' => $z]);
+    }
+
+    /**
      * Set the full coordinate.
      * Either pass all three ordinates separately, or as one parameter.
      *
@@ -331,44 +380,7 @@ class Geocentric
      */
     protected function setCoords($x, $y = null, $z = null)
     {
-        // The first (and only) parameter can be a string for parsing.
-        // We will assume it is a list of values.
-
-        if (is_string($x) && $y === null && $z === null) {
-            if (strpos($x, ',') !== false) {
-                // Split by commas.
-                $x = array_map('trim', explode(',', $x));
-            } else {
-                // Split by whitespace.
-                $x = preg_split('/[\s]+/', trim($x));
-            }
-        }
-
-        // The first (and only) parameter can be an array.
-
-        if (is_array($x) && $y === null && $z === null) {
-            // Check if the array uses associative keys (x, y and z).
-            $assoc = [];
-            array_walk($x, function ($item, $key) use (&$assoc) {
-                $lc = strtolower($key);
-                if ($lc >= 'x' && $lc <= 'z') {
-                    // Initialise the array for the first element we encounter.
-                    if (! $assoc) {
-                        $assoc = [null, null, null];
-                    }
-                    $assoc[ord($lc) - ord('x')] = $item;
-                }
-            });
-
-            // Yes, we have found associative keys, and put them in order,
-            // so use the new ordered array.
-            if ($assoc) {
-                $x = $assoc;
-            }
-
-            // Make sure all elements are floats.
-            list($x, $y, $z) = array_pad(array_values($x), 3, null);
-        }
+        list($x, $y, $z) = array_values($this->validateCoords($x, $y, $z));
 
         $this->setX($x)->setY($y)->setZ($z);
 
@@ -395,5 +407,22 @@ class Geocentric
         $lat = $geodetic->getLat(GEODETIC::RADIANS);
         $long = $geodetic->getLong(GEODETIC::RADIANS);
         $height = $geodetic->getHeight();
+
+        $datum = $geodetic->getDatum();
+
+        $cosLat = cos($lat);
+        $sinLat = sin($lat);
+
+        // Earth radius at location
+        $Rn = $datum->getA() / (sqrt(1.0 - $datum->getEs() * $sinLat * $sinLat));
+
+        // First eccentricity squared.
+        $es = $datum->getEs();
+
+        $x = ($Rn + $height) * $cosLat * cos($long);
+        $y = ($Rn + $height) * $cosLat * sin($long);
+        $z = (($Rn * (1 - $es)) + $height) * $sinLat;
+
+        return new self([$x, $y, $z], $datum);
     }
 }

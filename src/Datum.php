@@ -77,6 +77,7 @@ class Datum
      */
     public function __construct(Ellipsoid $ellipsoid, $shiftParams, $code = null, $name = null)
     {
+        $this->setEllipsoid($ellipsoid);
         $this->setShiftParams($shiftParams);
     }
 
@@ -258,6 +259,26 @@ class Datum
         return true;
     }
 
+    public function getA()
+    {
+        return $this->getEllipsoid()->getA();
+    }
+
+    protected function setEllipsoid(Ellipsoid $ellipsoid)
+    {
+        $this->ellipsoid = $ellipsoid;
+        return $this;
+    }
+
+    public function getEllipsoid()
+    {
+        return $this->ellipsoid;
+    }
+
+    public function getEs()
+    {
+        return $this->getEllipsoid()->getEs();
+    }
 
 
 

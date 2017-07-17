@@ -91,7 +91,7 @@ class Geodetic
     /**
      * @return Datum|null The current defined datum.
      */
-    protected function getDatum()
+    public function getDatum()
     {
         return $this->datum;
     }

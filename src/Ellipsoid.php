@@ -94,7 +94,7 @@ class Ellipsoid
     {
         $this->b = null;
         $this->es = null;
-        $this->e22 = null;
+        $this->es2 = null;
 
         return $this;
     }
