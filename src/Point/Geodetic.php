@@ -317,9 +317,10 @@ class Geodetic
     }
 
     /**
+     * The datum needs to be read separately.
      * @return array Return the coordinates as an array.
      */
-    public function getLatLong()
+    public function toArray()
     {
         return [
             'lat' => $this->getLat(),
@@ -413,6 +414,110 @@ class Geodetic
 
         // ellipsoidal (geodetic) latitude
         $lat = atan($SPHI / abs($CPHI));
+
+        return new self([rad2deg($lat), rad2deg($long), $height], $datum);
+    }
+
+    /**
+     * Create a Geodetic coordinate from a Geocentric coordinate.
+     * The method used here is derived from 'An Improved Algorithm for
+     * Geocentric to Geodetic Coordinate Conversion', by Ralph Toms, Feb 1996
+     */
+    public static function fromGeocentricNonIter(Geocentric $geocentric)
+    {
+        /*
+            $W;        // distance from Z axis 
+            $W2;       // square of distance from Z axis 
+            $T0;       // initial estimate of vertical component 
+            $T1;       // corrected estimate of vertical component 
+            $S0;       // initial estimate of horizontal component 
+            $S1;       // corrected estimate of horizontal component
+            $Sin_B0;   // sin(B0), B0 is estimate of Bowring aux variable 
+            $Sin3_B0;  // cube of sin(B0) 
+            $Cos_B0;   // cos(B0)
+            $Sin_p1;   // sin(phi1), phi1 is estimated latitude 
+            $Cos_p1;   // cos(phi1) 
+            $Rn;       // Earth radius at location 
+            $Sum;      // numerator of cos(phi1) 
+            $atPole;   // indicates location is in polar region 
+        */
+
+        // Cast from string to float.
+        // Since we are accepting the Point class only, then we can already
+        // guarantee we have floats. A simple list($x, $y $Z) = $p->toArray() will
+        // give us our values.
+
+        $x = $geocentric->getX();
+        $y = $geocentric->getY();
+        $z = $geocentric->getZ();
+
+        $datum = $geocentric->getDatum();
+
+        $a = $datum->getA();
+        $b = $datum->getB();
+        $es = $datum->getEs();
+
+        $atPole = false;
+
+        $half_pi = deg2rad(90);
+
+        // cosine of 67.5 degrees
+        $COS_67P5 = 0.38268343236508977;
+
+        // Toms region 1 constant
+        $AD_C = 1.0026000;
+
+        if ($x <> 0.0) {
+            $kong = atan2($y, $x);
+        } else {
+            if ($y > 0) {
+                $long = $half_pi;
+            } elseif ($y < 0) {
+                $long = -$half_pi;
+            } else {
+                $atPole = true;
+                $long = 0.0;
+
+                if ($z > 0.0) {
+                    // north pole
+                    $lat = $half_pi;
+                } elseif ($z < 0.0) {
+                    // south pole
+                    $lat = -$half_pi;
+                } else {
+                    // centre of earth
+                    $lat = $half_pi;
+                    $height = -$b;
+                    return new self([rad2deg($lat), rad2deg($long), $height], $datum);
+                }
+            }
+        }
+
+        $W2 = $x * $x + $y * $y;
+        $W = sqrt($W2);
+        $T0 = $z * $AD_C;
+        $S0 = sqrt($T0 * $T0 + $W2);
+        $Sin_B0 = $T0 / $S0;
+        $Cos_B0 = $W / $S0;
+        $Sin3_B0 = $Sin_B0 * $Sin_B0 * $Sin_B0;
+        $T1 = $z + $b * $ep2 * $Sin3_B0; // What is ep2
+        $Sum = $W - $a * $es * $Cos_B0 * $Cos_B0 * $Cos_B0;
+        $S1 = sqrt($T1 * $T1 + $Sum * $Sum);
+        $Sin_p1 = $T1 / $S1;
+        $Cos_p1 = $Sum / $S1;
+        $Rn = $a / sqrt(1.0 - $es * $Sin_p1 * $Sin_p1);
+
+        if ($Cos_p1 >= $COS_67P5) {
+            $height = $W / $Cos_p1 - $Rn;
+        } elseif ($Cos_p1 <= -$COS_67P5) {
+            $height = $W / -$Cos_p1 - $Rn;
+        } else {
+            $height = $z / $Sin_p1 + $Rn * ($es - 1.0);
+        }
+
+        if ($atPole == false) {
+            $lat = atan($Sin_p1 / $Cos_p1);
+        }
 
         return new self([rad2deg($lat), rad2deg($long), $height], $datum);
     }

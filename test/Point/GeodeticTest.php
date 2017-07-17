@@ -29,20 +29,25 @@ class GeodeticTest extends \PHPUnit_Framework_TestCase
         // Edinburgh OSGB.
         $point2 = $point1->shiftDatum($datum2);
 
-        // Asert WGS84 coordinates.
+        // Assert original WGS84 coordinates.
 
-        list($lat, $long, $height) = array_values($point1->getLatLong());
+        list($lat, $long, $height) = array_values($point1->toArray());
 
         $this->assertEquals(55.953251, $lat, '', $this->accuracy);
         $this->assertEquals(-3.188267, $long, '', $this->accuracy);
         $this->assertEquals(70, $height, '', $this->accuracy);
 
-        // Asert shifted OSGB coordinates.
+        // Assert shifted OSGB coordinates.
+        // These still need to be checked against a third-party tool for correctness.
 
-        list($lat, $long, $height) = array_values($point2->getLatLong());
+        list($lat, $long, $height) = array_values($point2->toArray());
 
         $this->assertEquals(55.957471156063, $lat, '', $this->accuracy);
         $this->assertEquals(-3.1973634975242, $long, '', $this->accuracy);
         $this->assertEquals(241.96584514156, $height, '', $this->accuracy);
+
+        // The datum for the point can be shifted back to the original datum,
+        // and the point coordinates will be back to roughly where they started at.
+        $point3 = $point2->shiftDatum($datum1);
     }
 }

@@ -75,7 +75,7 @@ class Geocentric
             $point = $point->withDatum($datum);
 
             // Shift coordinats to WGS84.
-            $wgs84_coords = static::coordsToWgs84($this->getCoords(), $this->getDatum());
+            $wgs84_coords = static::coordsToWgs84($this->toArray(), $this->getDatum());
 
             // Shift from WGS84 to the new datum.
             $datum_coords = static::coordsFromWgs84($wgs84_coords, $datum);
@@ -388,9 +388,10 @@ class Geocentric
     }
 
     /**
+     * The datum needs to be read off separately.
      * @return array Return the coordinates as an array.
      */
-    public function getCoords()
+    public function toArray()
     {
         return [
             'x' => $this->getX(),
