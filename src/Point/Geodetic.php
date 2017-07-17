@@ -327,4 +327,93 @@ class Geodetic
             'height' => $this->getHeight(),
         ];
     }
+
+    /**
+     * Create a Geodetic coordinate from a Geocentric coordinate.
+     */
+    public static function fromGeocentric(Geocentric $geocentric)
+    {
+        $x = $geocentric->getX();
+        $y = $geocentric->getY();
+        $z = $geocentric->getZ();
+
+        $datum = $geocentric->getDatum();
+
+        $a = $datum->getA();
+        $b = $datum->getB();
+        $es = $datum->getEs();
+
+        $genau = 1e-12;
+        $genau2 = ($genau * $genau);
+        $maxiter = 30;
+
+        $x2 = $x * $x;
+        $y2 = $y * $y;
+        $z2 = $z * $z;
+
+        $P = sqrt($x2 + $y2);
+        $RR = sqrt($x2 + $y2 + $z2);
+
+        $atPole = false;
+
+        // Special cases for latitude and longitude.
+        if ($P / $a < $genau) {
+            // Special case, if P=0. (X=0., Y=0.)
+            $atPole = true;
+            $long = 0.0;
+
+            // If (X,Y,Z)=(0.,0.,0.) then Height becomes semi-minor axis
+            // of ellipsoid (=center of mass), Latitude becomes PI/2
+
+            // Something here smells wrong - the height, plus does it cater for both poles?
+            if ($RR / $a < $genau) {
+                $lat = 90;
+                $height = -$b;
+                return new static([$long, $lat, $height], $datum);
+            }
+        } else {
+            // ellipsoidal (geodetic) longitude
+            // interval: -PI < Longitude <= +PI
+            $long = atan2($y, $x);
+        }
+
+        /* --------------------------------------------------------------
+         * Following iterative algorithm was developped by
+         * "Institut für Erdmessung", University of Hannover, July 1988.
+         * Internet: www.ife.uni-hannover.de
+         * Iterative computation of CPHI,SPHI and Height.
+         * Iteration of CPHI and SPHI to 10**-12 radian res$p->
+         * 2*10**-7 arcsec.
+         * --------------------------------------------------------------
+         */
+        $CT = $z / $RR;
+        $ST = $P / $RR;
+        $RX = 1.0 / sqrt(1.0 - $es * (2.0 - $es) * $ST * $ST);
+        $CPHI0 = $ST * (1.0 - $es) * $RX;
+        $SPHI0 = $CT * $RX;
+        $iter = 0;
+
+        // loop to find sin(Latitude) res$p-> Latitude
+        // until |sin(Latitude(iter)-Latitude(iter-1))| < genau
+        do {
+            ++$iter;
+            $RN = $a / sqrt(1.0 - $es * $SPHI0 * $SPHI0);
+
+            //  ellipsoidal (geodetic) height
+            $height = $P * $CPHI0 + $z * $SPHI0 - $RN * (1.0 - $es * $SPHI0 * $SPHI0);
+
+            $RK = $es * $RN / ($RN + $height);
+            $RX = 1.0 / sqrt(1.0 - $RK * (2.0 - $RK) * $ST * $ST);
+            $CPHI = $ST * (1.0 - $RK) * $RX;
+            $SPHI = $CT * $RX;
+            $SDPHI = $SPHI * $CPHI0 - $CPHI * $SPHI0;
+            $CPHI0 = $CPHI;
+            $SPHI0 = $SPHI;
+        } while ($SDPHI * $SDPHI > $genau2 && $iter < $maxiter);
+
+        // ellipsoidal (geodetic) latitude
+        $lat = atan($SPHI / abs($CPHI));
+
+        return new self([rad2deg($lat), rad2deg($long), $height], $datum);
+    }
 }

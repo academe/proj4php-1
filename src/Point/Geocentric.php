@@ -183,7 +183,7 @@ class Geocentric
     /**
      * @return Datum|null The current defined datum.
      */
-    protected function getDatum()
+    public function getDatum()
     {
         return $this->datum;
     }
@@ -239,7 +239,7 @@ class Geocentric
     /**
      * @return float Return just the x ordinate.
      */
-    protected function getX()
+    public function getX()
     {
         return $this->x;
     }
@@ -271,7 +271,7 @@ class Geocentric
     /**
      * @return float Return just the y ordinate.
      */
-    protected function getY()
+    public function getY()
     {
         return $this->y;
     }
@@ -303,7 +303,7 @@ class Geocentric
     /**
      * @return floatl Return just the z ordinate.
      */
-    protected function getZ()
+    public function getZ()
     {
         return $this->z;
     }
@@ -400,7 +400,7 @@ class Geocentric
     }
 
     /**
-     * Create a Geocentric coordinate from a Geodetic ccordinate.
+     * Create a Geocentric coordinate from a Geodetic coordinate.
      */
     public static function fromGeodetic(Geodetic $geodetic)
     {

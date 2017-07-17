@@ -266,23 +266,6 @@ class Datum
         return true;
     }
 
-    public function getA()
-    {
-        return $this->getEllipsoid()->getA();
-    }
-
-    protected function setEllipsoid(Ellipsoid $ellipsoid = null)
-    {
-        // If no ellipsoid is give then provide a default.
-        if (! isset($ellipsoid)) {
-            // The default will be WGS84.
-            $ellipsoid = new Ellipsoid();
-        }
-
-        $this->ellipsoid = $ellipsoid;
-        return $this;
-    }
-
     public function getEllipsoid()
     {
         return $this->ellipsoid;
@@ -293,10 +276,42 @@ class Datum
         return $this->getEllipsoid()->getEs();
     }
 
+    public function getA()
+    {
+        return $this->getEllipsoid()->getA();
+    }
+
+    public function getB()
+    {
+        return $this->getEllipsoid()->getB();
+    }
+
+    protected function setEllipsoid(Ellipsoid $ellipsoid = null)
+    {
+        // If no ellipsoid is given then provide a default.
+        if (! isset($ellipsoid)) {
+            // The default will be WGS84.
+            $ellipsoid = new Ellipsoid();
+        }
+
+        $this->ellipsoid = $ellipsoid;
+        return $this;
+    }
 
 
 
+
+
+
+//
+//
+//
+//
 // OLD stuff below.
+//
+//
+//
+//
 
     /**
      * The type of the datum, derived from the parameters supplied.
@@ -490,80 +505,6 @@ class Datum
         }
     }
 
-    /**
-     * The function Convert_Geodetic_To_Geocentric converts geodetic coordinates
-     * (latitude, longitude, and height) to geocentric coordinates (X, Y, Z),
-     * according to the current ellipsoid parameters.
-     *
-     *    Latitude  : Geodetic latitude in radians                     (input)
-     *    Longitude : Geodetic longitude in radians                    (input)
-     *    Height    : Geodetic height, in meters                       (input)
-     *    X         : Calculated Geocentric X coordinate, in meters    (output)
-     *    Y         : Calculated Geocentric Y coordinate, in meters    (output)
-     *    Z         : Calculated Geocentric Z coordinate, in meters    (output)
-     *
-     * FIXME: this is misusing x, y and z by using the single Point object to represent
-     * both geodetic and geocentric coordinates. Given an object, you have not way to
-     * knwow what it contains. Instead, we should have separate classes for the two
-     * coordinate systems so we can pass the right type of value objects around.
-     * Each coordinate system can then probably convert in from the other system given
-     * a Datum, e.g. $geodetic = LatLong::fromGeocentric->($geocentric, $datum)
-     * Both coordinate types should be derived from a common Point interface, so they
-     * can be used interchangeably, with appropriate conversions happening where
-     * needed.
-     */
-    public function geodetic_to_geocentric($p)
-    {
-        Proj4php::reportDebug(sprintf("geodetic_to_geocentric(%f,%f)\n", $p->x, $p->y));
-        $this->reportDebug();
-
-        $Longitude = $p->x;
-        $Latitude = $p->y;
-
-        // Z value not always supplied
-        $Height = (isset($p->z) ? $p->z : 0);
-
-        // GEOCENT_NO_ERROR;
-        $Error_Code = 0;
-
-        /**
-         * Don't blow up if Latitude is just a little out of the value
-         * range as it may just be a rounding issue.  Also removed longitude
-         * test, it should be wrapped by cos() and sin().  NFW for PROJ.4, Sep/2001.
-         */
-
-        if ($Latitude < -Common::HALF_PI && $Latitude > -1.001 * Common::HALF_PI) {
-            $Latitude = -Common::HALF_PI;
-        } elseif ($Latitude > Common::HALF_PI && $Latitude < 1.001 * Common::HALF_PI) {
-            $Latitude = Common::HALF_PI;
-        } elseif ($Latitude < -Common::HALF_PI || $Latitude > Common::HALF_PI) {
-            // Latitude out of range.
-            Proj4php::reportError(sprintf("geocent:lat out of range: %f\n", $Latitude));
-            return null;
-        }
-
-        if ($Longitude > Common::PI) {
-            $Longitude -= (2 * Common::PI);
-        }
-
-        // sin(Latitude)
-        $Sin_Lat = sin($Latitude);
-
-        // cos(Latitude)
-        $Cos_Lat = cos($Latitude);
-
-        // Square of sin(Latitude)
-        $Sin2_Lat = $Sin_Lat * $Sin_Lat;
-
-        // Earth radius at location
-        $Rn = $this->a / (sqrt(1.0e0 - $this->es * $Sin2_Lat));
-
-        $p->x = ($Rn + $Height) * $Cos_Lat * cos($Longitude);
-        $p->y = ($Rn + $Height) * $Cos_Lat * sin($Longitude);
-        $p->z = (($Rn * (1 - $this->es)) + $Height) * $Sin_Lat;
-
-        return $Error_Code;
-    }
 
     /**
      * @param Point $p TBC
@@ -774,96 +715,5 @@ class Datum
         $p->z = $Height;
 
         return $p;
-    }
-
-    /**
-     * Datum shift.
-     *
-     * p = point to transform in geocentric coordinates (x,y,z)
-     * Note: this will change the point by reference.
-     */
-    public function geocentric_to_wgs84(Point $p)
-    {
-        Proj4php::reportDebug(sprintf(
-            "geocentric_to_wgs84(%s,%s)\n",
-            $p->x,
-            $p->y
-        ));
-
-        if ($this->datum_type == Common::PJD_3PARAM) {
-            Proj4php::reportDebug(sprintf("+x=%f\n", $this->datum_params[0]));
-            Proj4php::reportDebug(sprintf("+y=%f\n", $this->datum_params[1]));
-            Proj4php::reportDebug(sprintf("+z=%f\n", $this->datum_params[2]));
-
-            $p->x += $this->datum_params[0];
-            $p->y += $this->datum_params[1];
-            $p->z += $this->datum_params[2];
-        } elseif ($this->datum_type == Common::PJD_7PARAM) {
-            Proj4php::reportDebug(sprintf("Dx=%f\n", $this->datum_params[0]));
-            Proj4php::reportDebug(sprintf("Dy=%f\n", $this->datum_params[1]));
-            Proj4php::reportDebug(sprintf("Dz=%f\n", $this->datum_params[2]));
-            Proj4php::reportDebug(sprintf("Rx=%f\n", $this->datum_params[3]));
-            Proj4php::reportDebug(sprintf("Ry=%f\n", $this->datum_params[4]));
-            Proj4php::reportDebug(sprintf("Rz=%f\n", $this->datum_params[5]));
-            Proj4php::reportDebug(sprintf("M=%f\n", $this->datum_params[6])); 
-
-            $Dx_BF = $this->datum_params[0];
-            $Dy_BF = $this->datum_params[1];
-            $Dz_BF = $this->datum_params[2];
-            $Rx_BF = $this->datum_params[3];
-            $Ry_BF = $this->datum_params[4];
-            $Rz_BF = $this->datum_params[5];
-            $M_BF = $this->datum_params[6];
-
-            $p->x = $M_BF * ($p->x - $Rz_BF * $p->y + $Ry_BF * $p->z) + $Dx_BF;
-            $p->y = $M_BF * ($Rz_BF * $p->x + $p->y - $Rx_BF * $p->z) + $Dy_BF;
-            $p->z = $M_BF * (-$Ry_BF * $p->x + $Rx_BF * $p->y + $p->z) + $Dz_BF;
-        }
-    }
-
-    /**
-     * Datum shift.
-     *
-     * coordinate system definition,
-     * point to transform in geocentric coordinates (x,y,z)
-     * Note: this will change the point by reference.
-     */
-    public function geocentric_from_wgs84(Point $p)
-    {
-        Proj4php::reportDebug('geocentric_from_wgs84('.$p->x.','.$p->y.")\n");
-
-        if ($this->datum_type == Common::PJD_3PARAM) {
-            Proj4php::reportDebug(sprintf("+x=%f\n", $this->datum_params[0]));
-            Proj4php::reportDebug(sprintf("+y=%f\n", $this->datum_params[1]));
-            Proj4php::reportDebug(sprintf("+z=%f\n", $this->datum_params[2]));
-
-            $p->x -= $this->datum_params[0];
-            $p->y -= $this->datum_params[1];
-            $p->z -= $this->datum_params[2];
-        } elseif ($this->datum_type == Common::PJD_7PARAM) {
-            Proj4php::reportDebug(sprintf("Dx=%f\n", $this->datum_params[0]));
-            Proj4php::reportDebug(sprintf("Dy=%f\n", $this->datum_params[1]));
-            Proj4php::reportDebug(sprintf("Dz=%f\n", $this->datum_params[2]));
-            Proj4php::reportDebug(sprintf("Rx=%f\n", $this->datum_params[3]));
-            Proj4php::reportDebug(sprintf("Ry=%f\n", $this->datum_params[4]));
-            Proj4php::reportDebug(sprintf("Rz=%f\n", $this->datum_params[5]));
-            Proj4php::reportDebug(sprintf("M=%f\n", $this->datum_params[6])); 
-
-            $Dx_BF = $this->datum_params[0];
-            $Dy_BF = $this->datum_params[1];
-            $Dz_BF = $this->datum_params[2];
-            $Rx_BF = $this->datum_params[3];
-            $Ry_BF = $this->datum_params[4];
-            $Rz_BF = $this->datum_params[5];
-            $M_BF = $this->datum_params[6];
-
-            $x_tmp = ($p->x - $Dx_BF) / $M_BF;
-            $y_tmp = ($p->y - $Dy_BF) / $M_BF;
-            $z_tmp = ($p->z - $Dz_BF) / $M_BF;
-
-            $p->x = $x_tmp + $Rz_BF * $y_tmp - $Ry_BF * $z_tmp;
-            $p->y = -$Rz_BF * $x_tmp + $y_tmp + $Rx_BF * $z_tmp;
-            $p->z = $Ry_BF * $x_tmp - $Rx_BF * $y_tmp + $z_tmp;
-        }
     }
 }
