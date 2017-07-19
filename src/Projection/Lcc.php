@@ -198,6 +198,7 @@ class Lcc extends AbstractProjection
         $y = $this->k0 * ($this->rh - $rh1 * cos($theta)) + $this->y_0;
 
         // TODO: return an appropriate point type, with the datum.
+        // TODO: we may also have a "convergence" value to include with the x and y.
         return ['x' => $x, 'y' => $y];
     }
 

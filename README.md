@@ -23,15 +23,20 @@ use proj4php\Datum;
 
 echo "<pre>";
 
-$e = new Ellipsoid(6378137.0, 298.257222101, 'GRS80', 'GRS 1980(IUGG, 1980)');
-$d = new Datum($e);
+// Datum for the point.
+$sphere = Ellipsoid::fromAB(6370997.0, 6370997.0, 'sphere', 'Normal Sphere (r=6370997)');
+$d = new Datum($sphere);
+
+// Ellipsoid for the projection.
+$ellipsoid = new Ellipsoid(6378137.0, 298.257222101, 'GRS80', 'GRS 1980 (IUGG, 1980)');
 
 // Create the projection.
 // Example ETRS89 (lcc):
 // +proj=lcc +lat_1=35 +lat_2=65 +lat_0=52 +lon_0=10 +x_0=4000000 +y_0=2800000 +ellps=GRS80 +units=m +no_defs 
+// We pass in a and b here, but really should pass in the ellipsoid or datum.
 $projection = new Lcc([
-    'a' => $e->getA(),
-    'b' => $e->getB(),
+    'a' => $ellipsoid>getA(),
+    'b' => $ellipsoid>getB(),
     'lat_0' => 52,
     'lat_1' => 35.0,
     'lat_2' => 65.0,
@@ -44,6 +49,9 @@ $projection = new Lcc([
 echo "Starting geodetic point (Edinburgh, GRS80 sphere):\n";
 $point = new Geodetic([55.953251, -3.188267], $d);
 var_dump($point->toArray());
+
+// Shift datum of point? See notes below.
+//$point = $point->shiftDatum(new Datum($ellipsoid));
 
 // Convert the geodetic point to an xy point.
 echo "Converted to ETRS89 (lcc):\n";
@@ -59,12 +67,12 @@ var_dump($point2->toArray());
 Note that there is no XY point class yet, so `$xy` is just an array in this example.
 That class will be created next, after some refactoring in Lcc.php.
 
-Note also that the projection here is defiend with a sphere, but the geodetic point
-uses the WGS84 datum (which is not a sphere). So to bring these into line, the point
-needs a datum shift. The projection is defined just with a sphere and not a full datum
+Note also that the projection here is definend with a GRS80 ellipsoid, but the geodetic point
+uses a spherical datum. So to bring these into line, the point
+needs a datum shift. The projection is defined just with an ellipsoid and not a full datum
 (with centre-shift parameters) so *I think* this is just an ellipsoid conversion needed
 here. The geodetic point will need its lat/long/height shifted to the new ellipsoid
-(the sphere) before the `forward` translation is performed. If the final XY point needs
+(from the sphere) before the `forward` translation is performed. If the final XY point needs
 to be in any other datum or using any otehr ellipsoid, then another shift is needed.
 This can get confusing, which is why every point of any type must carry its datum with
 it, and the `forward`/`inverse` will know if any initial shifts are needed when they

@@ -525,6 +525,9 @@ class Geodetic
 
     /**
      * Shift to a new datum.
+     * TODO: if there is no centre shift needed beween the datums, then
+     * the shuft should be possible in the geodetic domain without the need
+     * to convert to geocentric points.
      */
     public function shiftDatum(Datum $datum)
     {
