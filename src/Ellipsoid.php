@@ -36,6 +36,12 @@ class Ellipsoid
     protected $b;
 
     /**
+     * Eccentricity.
+     * Derived.
+     */
+    protected $e;
+
+    /**
      * First eccentricity squared.
      * Derived.
      */
@@ -93,6 +99,7 @@ class Ellipsoid
     protected function resetDerived()
     {
         $this->b = null;
+        $this->e = null;
         $this->es = null;
         $this->es2 = null;
 
@@ -229,6 +236,19 @@ class Ellipsoid
         }
 
         return $this->b;
+    }
+
+    /**
+     * Eccentricity.
+     */
+    public function getE()
+    {
+        if ($this->e === null) {
+            $div = $this->getB() / $this->getA();
+            $this->e = sqrt(1.0 - $div * $div);
+        }
+
+        return $this->e;
     }
 
     /**

@@ -6,18 +6,102 @@ PHP-class for proj4
 This is a PHP-Class for geographic coordinates transformation using proj4 definitions,
 thanks to a translation from Proj4JS. 
 
-## Updated Requirements and Features
+# New Developments
 
-To keep up with the relentless pace of PHP versions and best practice, the following
-features are being implemented on this package:
+This example will help to put the architecture into context:
 
-* [x] Namespacing.
-* [ ] PHP5.4+ syntax (not aiming to be bleeding edge here, just yet)
-* [ ] [PSR-2 styling](http://www.php-fig.org/psr/psr-2/)
-* [x] [PSR-4 autoloader](http://www.php-fig.org/psr/psr-4/)
-* [x] [semver](http://semver.org/) release numbers to packagist.org
-* [x] Full compatibility with [composer](https://getcomposer.org/)
-* [ ] Tests to come once the above is implemented.
+```php
+<?php
+
+include 'vendor/autoload.php';
+
+use proj4php\Point\Geocentric;
+use proj4php\Point\Geodetic;
+use proj4php\Projection\Lcc;
+use proj4php\Ellipsoid;
+use proj4php\Datum;
+
+echo "<pre>";
+
+$e = new Ellipsoid(6378137.0, 298.257222101, 'GRS80', 'GRS 1980(IUGG, 1980)');
+$d = new Datum($e);
+
+// Create the projection.
+// Example ETRS89 (lcc):
+// +proj=lcc +lat_1=35 +lat_2=65 +lat_0=52 +lon_0=10 +x_0=4000000 +y_0=2800000 +ellps=GRS80 +units=m +no_defs 
+$projection = new Lcc([
+    'a' => $e->getA(),
+    'b' => $e->getB(),
+    'lat_0' => 52,
+    'lat_1' => 35.0,
+    'lat_2' => 65.0,
+    'lon_0' => 10.0,
+    'x_0' => 4000000.0,
+    'y_0' => 2800000.0,
+]);
+
+// Point at Edinburgh with default WGS84 datum.
+echo "Starting geodetic point (Edinburgh, GRS80 sphere):\n";
+$point = new Geodetic([55.953251, -3.188267], $d);
+var_dump($point->toArray());
+
+// Convert the geodetic point to an xy point.
+echo "Converted to ETRS89 (lcc):\n";
+$xy = $projection->forward($point);
+var_dump($xy);
+
+// Convert the xy point back to a geodetic point.
+echo "Converted back to geodetic:\n";
+$point2 = $projection->inverse($xy);
+var_dump($point2->toArray());
+```
+
+Note that there is no XY point class yet, so `$xy` is just an array in this example.
+That class will be created next, after some refactoring in Lcc.php.
+
+Note also that the projection here is defiend with a sphere, but the geodetic point
+uses the WGS84 datum (which is not a sphere). So to bring these into line, the point
+needs a datum shift. The projection is defined just with a sphere and not a full datum
+(with centre-shift parameters) so *I think* this is just an ellipsoid conversion needed
+here. The geodetic point will need its lat/long/height shifted to the new ellipsoid
+(the sphere) before the `forward` translation is performed. If the final XY point needs
+to be in any other datum or using any otehr ellipsoid, then another shift is needed.
+This can get confusing, which is why every point of any type must carry its datum with
+it, and the `forward`/`inverse` will know if any initial shifts are needed when they
+operate.
+
+The result is shown below, which is *near enough* (given no ellipsoid conversions are
+done) correct when checked online:
+
+```
+Starting geodetic point (Edinburgh, GRS80 sphere):
+array(3) {
+  ["lat"]=>
+  float(55.953251)
+  ["long"]=>
+  float(-3.188267)
+  ["height"]=>
+  float(0)
+}
+Converted to ETRS89 (lcc):
+array(2) {
+  ["x"]=>
+  float(3208188.1979678)
+  ["y"]=>
+  float(3296012.7387914)
+}
+Converted back to geodetic:
+array(3) {
+  ["lat"]=>
+  float(55.953251)
+  ["long"]=>
+  float(-3.188267)
+  ["height"]=>
+  float(0)
+}
+```
+
+----
 
 A [legacy branch php4proj5.2](https://github.com/proj4php/proj4php/tree/proj4php5.2) will be
 maintained for older applications that need it.

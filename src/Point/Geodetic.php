@@ -318,13 +318,14 @@ class Geodetic
 
     /**
      * The datum needs to be read separately.
+     * @param string $units The units to return the angles in.
      * @return array Return the coordinates as an array.
      */
-    public function toArray()
+    public function toArray($units = self::DEGREES)
     {
         return [
-            'lat' => $this->getLat(),
-            'long' => $this->getLong(),
+            'lat' => $this->getLat($units),
+            'long' => $this->getLong($units),
             'height' => $this->getHeight(),
         ];
     }
