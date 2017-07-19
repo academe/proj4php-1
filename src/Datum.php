@@ -261,6 +261,15 @@ class Datum
             return false;
         }
 
+        // Check the ellipsoids - are they the same?
+        // The two driving values are a and rf.
+        if (
+            $this->getEllipsoid()->getA() !== $datum->getEllipsoid()->getA()
+            || $this->getEllipsoid()->getRf() !== $datum->getEllipsoid()->getRf()
+        ) {
+            return false;
+        }
+
         // Can't find any differences in the shifting Bursa-Wolf parameters, so assume
         // they are the same. We ignaore the names of the datums.
         return true;

@@ -25,7 +25,7 @@ echo "<pre>";
 
 // Datum for the point.
 $sphere = Ellipsoid::fromAB(6370997.0, 6370997.0, 'sphere', 'Normal Sphere (r=6370997)');
-$d = new Datum($sphere);
+$datum_s = new Datum($sphere);
 
 // Ellipsoid for the projection.
 $ellipsoid = new Ellipsoid(6378137.0, 298.257222101, 'GRS80', 'GRS 1980 (IUGG, 1980)');
@@ -47,7 +47,7 @@ $projection = new Lcc([
 
 // Point at Edinburgh with default WGS84 datum.
 echo "Starting geodetic point (Edinburgh, GRS80 sphere):\n";
-$point = new Geodetic([55.953251, -3.188267], $d);
+$point = new Geodetic([55.953251, -3.188267], $datum_s);
 var_dump($point->toArray());
 
 // Shift datum of point? See notes below.
