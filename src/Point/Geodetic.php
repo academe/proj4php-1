@@ -277,6 +277,9 @@ class Geodetic
         }
 
         // The first (and only) parameter can be an array.
+        // TODO: fetching an array from another array, using a list of keys and aliases,
+        // and keeping the results in a specific order, seems like a great thing to move
+        // to a helper class.
 
         if (is_array($lat) && $long === null && $height === null) {
             // Check if the array uses associative keys (lat, long and height, or equivalent).
@@ -529,6 +532,8 @@ class Geodetic
      * the shuft should be possible in the geodetic domain without the need
      * to convert to geocentric points. Is there even a formula for this, and
      * is it more accurate than jumping via geocentric points?
+     * The "Molodensky" or the "Multiple regression equations" transformation
+     * will do this.
      */
     public function shiftDatum(Datum $datum)
     {

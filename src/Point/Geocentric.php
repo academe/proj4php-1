@@ -106,6 +106,8 @@ class Geocentric
     /**
      * Perform a Helmert transform om a set of coordinates using the Bursa-Wolf parameters
      * provided by the datum.
+     * There is a more accurate Molodensky-Badekas transformation, which uses ten paarameters,
+     * though there are no examples of that being using in Proj4.
      */
     public static function helmertTransform($coords, Datum $datum, $forward = true)
     {

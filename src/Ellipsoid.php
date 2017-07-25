@@ -48,10 +48,10 @@ class Ellipsoid
     protected $es;
 
     /**
-     * Second eccentricity squared.
+     * Second eccentricity squared, aka eccentrity prime squared.
      * Derived.
      */
-    protected $es2;
+    protected $ep2;
 
     /**
      * Tolerance (decimal digits) used to compare equality of floats.
@@ -267,15 +267,15 @@ class Ellipsoid
     }
 
     /**
-     * Second eccentricity squared.
+     * Second eccentricity squared, aka eccentricity primed squared.
      */
-    public function getEs2()
+    public function getEp2()
     {
-        if ($this->es2 === null) {
+        if ($this->ep2 === null) {
             $a2 = $this->getA() * $this->getA();
             $b2 = $this->getB() * $this->getB();
 
-            $this->es2 = ($a2 - $b2) / $b2;
+            $this->ep2 = ($a2 - $b2) / $b2;
         }
 
         return $this->es2;

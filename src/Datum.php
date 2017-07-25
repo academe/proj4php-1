@@ -263,9 +263,10 @@ class Datum
 
         // Check the ellipsoids - are they the same?
         // The two driving values are a and rf.
+        // FIXME: this hard-coded tolerance.
         if (
-            $this->getEllipsoid()->getA() !== $datum->getEllipsoid()->getA()
-            || $this->getEllipsoid()->getRf() !== $datum->getEllipsoid()->getRf()
+            abs($this->getEllipsoid()->getA() - $datum->getEllipsoid()->getA()) > 1.0e-6
+            || abs($this->getEllipsoid()->getRf() - $datum->getEllipsoid()->getRf()) > 1.0e-6
         ) {
             return false;
         }
@@ -300,9 +301,9 @@ class Datum
         return $this->getEllipsoid()->getEs();
     }
 
-    public function getEs2()
+    public function getEp2()
     {
-        return $this->getEllipsoid()->getEs2();
+        return $this->getEllipsoid()->getEp2();
     }
 
     protected function setEllipsoid(Ellipsoid $ellipsoid = null)

@@ -31,13 +31,8 @@ namespace proj4php\Projection;
 //<2104> +proj=lcc +lat_1=10.16666666666667 +lat_0=10.16666666666667 +lon_0=-71.60561777777777 +k_0=1 +x0=-17044 +x0=-23139.97 +ellps=intl +units=m +no_defs  no_defs
 // Initialize the Lambert Conformal conic projection
 // -----------------------------------------------------------------
-//class Proj4phpProjlcc = Class.create();
 
-//use proj4php\Proj4php;
-//use proj4php\Common;
 use proj4php\Point\Geodetic;
-
-use proj4php\Point\Geodedic;
 
 class Lcc extends AbstractProjection
 {
@@ -66,7 +61,7 @@ class Lcc extends AbstractProjection
     protected $e;
 
     // projection scale factor
-    protected $k0 = 1.0;
+    protected $k_0 = 1.0;
 
     // central longitude
     protected $lon_0;
@@ -87,28 +82,8 @@ class Lcc extends AbstractProjection
      */
     public function __construct(array $options = [])
     {
-        // CHECKME: can we just leave these options as an array and extract
-        // what we need when we need it? We will probably need to be able to
-        // alias certain values (e.g. lat_0 and lat0).
-        foreach($options as $name => $value) {
-            if (property_exists($this, $name)) {
-                // Input will be degrees for many values, needing a radians conversion.
-                if (substr($name, 0, 3) == 'lon' || substr($name, 0, 3) == 'lat') {
-                    $value = deg2rad($value);
-                }
+        $this->parseOptions($options);
 
-                $this->$name = $value;
-            }
-        }
-
-        $this->init();
-    }
-
-    /**
-     * This init should be a part of the constructor.
-     */
-    public function init()
-    {
         // If lat2 is not defined
         if (! isset($this->lat_2)) {
             $this->lat_2 = $this->lat_0;
@@ -132,6 +107,7 @@ class Lcc extends AbstractProjection
         // Is $flat actually $sphere->getF()? Check out alternative derivations from a and rf.
         // Get these from the ellipsoid, if there is one. The ellipsoid
         // could in turn be in a datum.
+
         $a = $this->a;
         $b = $this->b;
 
@@ -194,8 +170,8 @@ class Lcc extends AbstractProjection
         }
 
         $theta = $this->ns * $this->adjust_lon($long - $this->lon_0);
-        $x = $this->k0 * ($rh1 * sin($theta)) + $this->x_0;
-        $y = $this->k0 * ($this->rh - $rh1 * cos($theta)) + $this->y_0;
+        $x = $this->k_0 * ($rh1 * sin($theta)) + $this->x_0;
+        $y = $this->k_0 * ($this->rh - $rh1 * cos($theta)) + $this->y_0;
 
         // TODO: return an appropriate point type, with the datum.
         // TODO: we may also have a "convergence" value to include with the x and y.
@@ -213,8 +189,8 @@ class Lcc extends AbstractProjection
         // TODO: this will be an LCC point of some sort (X, Y and convergence?)
         list($x, $y) = array_values($p);
 
-        $x = ($x - $this->x_0) / $this->k0;
-        $y = ($this->rh - ($y - $this->y_0) / $this->k0);
+        $x = ($x - $this->x_0) / $this->k_0;
+        $y = ($this->rh - ($y - $this->y_0) / $this->k_0);
 
         if ($this->ns > 0) {
             $rh1 = sqrt(($x * $x) + ($y * $y));

@@ -28,14 +28,14 @@ abstract class AbstractProjection
     /**
      * Adjust longitude to -180 to 180; input in radians
      * 
-     * @param float $x
+     * @param float $lon Angle in radians
      * @return float
      */
-    public static function adjust_lon($x)
+    public static function adjust_lon($lon)
     {
-        return (abs($x) < M_PI)
-            ? $x
-            : ($x - (static::sign($x) * (M_PI + M_PI)));
+        return (abs($lon) < M_PI)
+            ? $lon
+            : ($lon - (static::sign($lon) * (M_PI + M_PI)));
     }
 
     /**
@@ -125,5 +125,158 @@ abstract class AbstractProjection
 
         // What does this return value mean? Maybe return null or raise an exeption.
         return (-9999);
+    }
+
+    /**
+     * following functions from gctpc cproj.c for transverse mercator projections
+     * 
+     * @param float $x
+     * @return float
+     */
+    public static function e0fn($x)
+    {
+        return 1.0 - 0.25 * $x * (1.0 + $x / 16.0 * (3.0 + 1.25 * $x));
+    }
+
+    /**
+     * @param float $x
+     * @return float
+     */
+    public static function e1fn($x)
+    {
+        return (0.375 * $x * (1.0 + 0.25 * $x * (1.0 + 0.46875 * $x)));
+    }
+
+    /**
+     * @param float $x
+     * @return float
+     */
+    public static function e2fn($x)
+    {
+        return (0.05859375 * $x * $x * (1.0 + 0.75 * $x));
+    }
+
+    /**
+     * @param float $x
+     * @return float
+     */
+    public static function e3fn($x)
+    {
+        return ($x * $x * $x * (35.0 / 3072.0));
+    }
+
+    /**
+     * @param float $e0
+     * @param float $e1
+     * @param float $e2
+     * @param float $e3
+     * @param float $phi
+     * @return float
+     */
+    public static function mlfn($e0, $e1, $e2, $e3, $phi)
+    {
+        return (
+            $e0 * $phi
+            - $e1 * sin(2.0 * $phi)
+            + $e2 * sin(4.0 * $phi)
+            - $e3 * sin(6.0 * $phi)
+        );
+    }
+
+    /**
+     * Function to eliminate roundoff errors in asin
+     * 
+     * @param float $x
+     * @return float
+     */
+    public static function asinz($x)
+    {
+        return asin(
+            abs($x) > 1.0 ? ($x > 1.0 ? 1.0 : -1.0) : $x 
+        );
+    }
+
+    /**
+     * Set a class property, of the proprty exists.
+     * Discard the value if the property does not exist.
+     */
+    protected function setProperty($name, $value)
+    {
+        if (property_exists($this, $name)) {
+            $this->$name = $value;
+        }
+    }
+
+    /**
+     * Take the supplied options and store them in relevant properties.
+     */
+    protected function parseOptions(array $options = [])
+    {
+        foreach ($options as $name => $value) {
+            $lname = strtolower($name);
+
+            switch ($lname) {
+                case 'title':
+                    $this->setProperty($lname, $value);
+                    break;
+                case 'a':
+                case 'b':
+                    $this->setProperty($lname, deg2rad($value));
+                    break;
+                case 'rf':
+                    $this->setProperty($lname, floatval($value));
+                    break;
+                case 'lat0':
+                case 'lat_0':
+                    $this->setProperty('lat_0', deg2rad($value));
+                    break;
+                case 'lat1':
+                case 'lat_1':
+                    $this->setProperty('lat_1', deg2rad($value));
+                    break;
+                case 'lat2':
+                case 'lat_2':
+                    $this->setProperty('lat_2', deg2rad($value));
+                    break;
+                case 'lat_ts':
+                case 'alpha':
+                    $this->setProperty($lname, deg2rad($value));
+                    break;
+                case 'lon0':
+                case 'lon_0':
+                    $this->setProperty('lon_0', deg2rad($value));
+                    break;
+                case 'lonc':
+                case 'lon_c':
+                    $this->setProperty('longc', deg2rad($value));
+                    break;
+                case 'x0':
+                case 'x_0':
+                    $this->setProperty('x_0', floatval($value));
+                    break;
+                case 'x0':
+                case 'y_0':
+                    $this->setProperty('y_0', floatval($value));
+                    break;
+                case 'k':
+                case 'k0':
+                case 'k_0':
+                    $this->setProperty('k_0', floatval($value));
+                    break;
+                case 'r_a':
+                    $this->setProperty('R_A', true);
+                    break;
+                case 'sphere':
+                    $this->setProperty($lname, (bool)$value);
+                    break;
+                case 'zone':
+                    $this->setProperty($lname, intval($value, 10));
+                    break;
+                case 'south':
+                case 'utmsouth':
+                    $this->setProperty('utmSouth', true);
+                    break;
+            }
+        }
     }
 }
