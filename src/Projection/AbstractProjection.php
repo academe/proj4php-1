@@ -10,6 +10,10 @@ abstract class AbstractProjection
      * Function to compute the constant small t for use in the forward
      * computations in the Lambert Conformal Conic and the Polar
      * Stereographic projections.
+     *
+     * TODO: If the parsed parameters are put into an array rather than
+     * properties, then it will be easier to list them, serialise them etc.
+     * Or maybe we just treat "null" as a non-set property?
      * 
      * @param float $eccent
      * @param float $phi
@@ -202,13 +206,27 @@ abstract class AbstractProjection
      */
     protected function setProperty($name, $value)
     {
-        if (property_exists($this, $name)) {
+        // If there is a setter, then use that.
+        $setterName = 'set' . ucfirst(str_replace('_', '', strtolower($name)));
+
+        if (method_exists($this, $setterName)) {
+            $this->$setterName($value);
+        } elseif (property_exists($this, $name)) {
             $this->$name = $value;
         }
     }
 
+    public function getClone()
+    {
+        return clone $this;
+    }
+
     /**
      * Take the supplied options and store them in relevant properties.
+     * TODO: support datum and ellipsoid. Also default both of these when asked for it
+     * and not supplied. a, b, rf, es, ep2 will all come from the ellipsoid if requested
+     * and not overridden. Set the datum, and then use these ellipsoid parameters, and
+     * towgs84 if supplied, to configure the datum and allipsoid.
      */
     protected function parseOptions(array $options = [])
     {
@@ -278,5 +296,10 @@ abstract class AbstractProjection
                     break;
             }
         }
+    }
+
+    public function toArray()
+    {
+        return get_object_vars($this);
     }
 }

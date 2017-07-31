@@ -14,7 +14,7 @@ namespace proj4php\Point;
 use InvalidArgumentException;
 use proj4php\Datum;
 
-class Geocentric
+class Ecef
 {
     /**
      * X ordinate, in metres.
@@ -49,8 +49,6 @@ class Geocentric
     public function __construct($coords, Datum $datum = null)
     {
         $this->setCoords($coords);
-
-        // TODO: set a default WGS84 datum.
 
         if (isset($datum)) {
             $this->setDatum($datum);

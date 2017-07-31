@@ -142,7 +142,7 @@ class Utm
         if (isset($this->sphere) && $this->sphere === true) {
             // spherical form
 
-            $f = exp( $p->x / ($this->a * $this->k0) );
+            $f = exp($p->x / ($this->a * $this->k0) );
             $g = .5 * ($f - 1 / $f);
             $temp = $this->lat0 + $p->y / ($this->a * $this->k0);
             $h = cos($temp);

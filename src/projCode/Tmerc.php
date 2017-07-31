@@ -128,11 +128,12 @@ class Tmerc
 
         if (isset($this->sphere) && $this->sphere === true) {
             // spherical form
-            $f = exp( $p->x / ($this->a * $this->k0) );
+
+            $f = exp($p->x / ($this->a * $this->k0));
             $g = .5 * ($f - 1 / $f);
             $temp = $this->lat0 + $p->y / ($this->a * $this->k0);
-            $h = cos( $temp );
-            $con = sqrt( (1.0 - $h * $h) / (1.0 + $g * $g) );
+            $h = cos($temp);
+            $con = sqrt((1.0 - $h * $h) / (1.0 + $g * $g));
             $lat = Common::asinz( $con );
 
             if ($temp < 0) {
@@ -142,10 +143,11 @@ class Tmerc
             if (($g == 0) && ($h == 0)) {
                 $lon = $this->long0;
             } else {
-                $lon = Common::adjust_lon( atan2( $g, $h ) + $this->long0 );
+                $lon = Common::adjust_lon(atan2($g, $h) + $this->long0);
             }
         } else {
             // ellipsoidal form
+
             $x = $p->x - $this->x0;
             $y = $p->y - $this->y0;
 

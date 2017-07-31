@@ -281,14 +281,29 @@ class Ellipsoid
         return $this->es2;
     }
 
+    /**
+     * These are the core parameters, and everything else is defined from these.
+     * FIXME: rf will be infinite fot a sphere, so maybe it's not quite that simple.
+     * Maybe return a and b for a sphere?
+     * TODO: should be toArray()
+     */
     public function getParameters()
     {
-        return [
-            'a' => $this->getA(),
-            'rf' => $this->getRf(),
-            'code' => $this->getCode(),
-            'name' => $this->getName(),
-        ];
+        if ($this->isSphere()) {
+            return [
+                'a' => $this->getA(),
+                'b' => $this->getB(),
+                'code' => $this->getCode(),
+                'name' => $this->getName(),
+            ];
+        } else {
+            return [
+                'a' => $this->getA(),
+                'rf' => $this->getRf(),
+                'code' => $this->getCode(),
+                'name' => $this->getName(),
+            ];
+        }
     }
 
     /**

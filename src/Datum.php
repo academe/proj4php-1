@@ -79,6 +79,9 @@ class Datum
     {
         $this->setEllipsoid($ellipsoid);
         $this->setShiftParams($shiftParams);
+
+        $this->code = $code;
+        $this->name = $name;
     }
 
     public function getDisplacementParameters($direction = self::FORWARD)

@@ -33,6 +33,7 @@ namespace proj4php\Projection;
 // -----------------------------------------------------------------
 
 use proj4php\Point\Geodetic;
+use proj4php\Point\Enu;
 
 class Lcc extends AbstractProjection
 {
@@ -107,6 +108,10 @@ class Lcc extends AbstractProjection
         // Is $flat actually $sphere->getF()? Check out alternative derivations from a and rf.
         // Get these from the ellipsoid, if there is one. The ellipsoid
         // could in turn be in a datum.
+        // To do this, accessors will be needed for properties, so they can be calculated
+        // on-the-fly when needed.
+        // TODO: these parameters could be supplied in the datum of the point being converted;
+        // they may or may not be known in advance.
 
         $a = $this->a;
         $b = $this->b;
@@ -175,19 +180,33 @@ class Lcc extends AbstractProjection
 
         // TODO: return an appropriate point type, with the datum.
         // TODO: we may also have a "convergence" value to include with the x and y.
-        return ['x' => $x, 'y' => $y];
+        // Now this is where it gets tricky - the datum in the source coordinates
+        // may have been overridden by parameters supplied, e.g. a different ellipsoid
+        // or different towgs84 parameters. How do we pass that on to the resulting
+        // coordinate? The way to do it may be to insist that ALL parameters which are
+        // a part of the datum MUST go through a datum object. Building that datum
+        // object is then the job of a provider that wraps these projections.
+        // TODO:
+        // We probably need to give it the full projection ($this) rather than just the
+        // datum.
+        // The datum should be a part of the projection anyway, since it carries vital
+        // projection parameters.
+        // The projection may have its own datum, or it could just use the point datum
+        // on-the-fly.
+
+        return new Enu(['x' => $x, 'y' => $y], $geodetic->getDatum());
     }
 
     /**
      * Lambert Conformal Conic inverse equations--mapping x,y to lat/long
      * 
-     * @param TBC $p
+     * @param Enu $enu
      * @return Geodetic
      */
-    public function inverse($p)
+    public function inverse(Enu $enu)
     {
-        // TODO: this will be an LCC point of some sort (X, Y and convergence?)
-        list($x, $y) = array_values($p);
+        $x = $enu->getX();
+        $y = $enu->getY();
 
         $x = ($x - $this->x_0) / $this->k_0;
         $y = ($this->rh - ($y - $this->y_0) / $this->k_0);
@@ -220,7 +239,9 @@ class Lcc extends AbstractProjection
 
         $long = $this->adjust_lon($theta / $this->ns + $this->lon_0);
 
-        // TODO: the datum needs to be captured in here.
-        return new Geodetic(['lat' => rad2deg($lat), 'long' => rad2deg($long)]);
+        return new Geodetic(
+            ['lat' => rad2deg($lat), 'long' => rad2deg($long)],
+            $enu->getDatum()
+        );
     }
 }

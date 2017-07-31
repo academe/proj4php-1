@@ -49,8 +49,6 @@ class Geodetic
     {
         $this->setLatLong($latLong);
 
-        // TODO: set a default WGS84 datum.
-
         if (isset($datum)) {
             $this->setDatum($datum);
         }
@@ -335,14 +333,25 @@ class Geodetic
 
     /**
      * Create a Geodetic coordinate from a Geocentric coordinate.
+     * A source datum MUST be supplied for the conversion to make
+     * any sense. The source ECEF coordiate may have its own Datum,
+     * or one can be supplied here.
      */
-    public static function fromGeocentric(Geocentric $geocentric)
+    public static function fromEcef(Ecef $ecef, Datum $defaultDatum = null)
     {
-        $x = $geocentric->getX();
-        $y = $geocentric->getY();
-        $z = $geocentric->getZ();
+        $x = $ecef->getX();
+        $y = $ecef->getY();
+        $z = $ecef->getZ();
 
-        $datum = $geocentric->getDatum();
+        // Use the datum in the source coordinate if there is one, otherwise
+        // the supplied datum.
+        $datum = $ecef->getDatum() ?: $defaultDatum;
+
+        // Finally, if there is still no defined datum, then use the default
+        // (WGS84) datum.
+        if ($datum === null) {
+            $datum = new Datum();
+        }
 
         $a = $datum->getA();
         $b = $datum->getB();
@@ -427,7 +436,7 @@ class Geodetic
      * The method used here is derived from 'An Improved Algorithm for
      * Geocentric to Geodetic Coordinate Conversion', by Ralph Toms, Feb 1996
      */
-    public static function fromGeocentricNonIter(Geocentric $geocentric)
+    public static function fromEcefNonIter(Ecef $ecef)
     {
         /*
             $W;        // distance from Z axis 
@@ -451,11 +460,11 @@ class Geodetic
         // guarantee we have floats. A simple list($x, $y $Z) = $p->toArray() will
         // give us our values.
 
-        $x = $geocentric->getX();
-        $y = $geocentric->getY();
-        $z = $geocentric->getZ();
+        $x = $ecef->getX();
+        $y = $ecef->getY();
+        $z = $ecef->getZ();
 
-        $datum = $geocentric->getDatum();
+        $datum = $ecef->getDatum();
 
         $a = $datum->getA();
         $b = $datum->getB();
@@ -541,8 +550,8 @@ class Geodetic
         // so we can avoid some work by checking first.
 
         if (! $this->getDatum()->isSame($datum)) {
-            $point = $this->fromGeocentric(
-                Geocentric::fromGeodetic($this)->shiftDatum($datum)
+            $point = $this->fromEcef(
+                Ecef::fromGeodetic($this)->shiftDatum($datum)
             );
         } else {
             $point = $this->getClone()->setDatum($datum);
