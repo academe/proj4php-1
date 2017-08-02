@@ -54,14 +54,14 @@ class Lcc extends AbstractProjection
     protected $lat_2;
 
     // Ellipsoid parameters.
-    // semi-major axis
+    // Semi-major axis
     protected $a;
-    // semi-minor axis
+    // Semi-minor axis
     protected $b;
-    // eccentricity
+    // Eccentricity
     protected $e;
 
-    // projection scale factor
+    // Projection scale factor
     protected $k_0 = 1.0;
 
     // central longitude
@@ -113,25 +113,22 @@ class Lcc extends AbstractProjection
         // TODO: these parameters could be supplied in the datum of the point being converted;
         // they may or may not be known in advance.
 
-        $a = $this->a;
-        $b = $this->b;
-
-        $flat = $b / $a;
-        $this->e = sqrt(1.0 - $flat * $flat); // Get this from the ellipsoid, if there is one.
+        $a = $this->datum->getA();
+        $e = $this->datum->getE();
 
         $sin1 = sin($this->lat_1);
         $cos1 = cos($this->lat_1);
 
-        $ms1 = $this->msfnz($this->e, $sin1, $cos1);
-        $ts1 = $this->tsfnz($this->e, $this->lat_1, $sin1);
+        $ms1 = $this->msfnz($e, $sin1, $cos1);
+        $ts1 = $this->tsfnz($e, $this->lat_1, $sin1);
 
         $sin2 = sin($this->lat_2);
         $cos2 = cos($this->lat_2);
 
-        $ms2 = $this->msfnz($this->e, $sin2, $cos2);
-        $ts2 = $this->tsfnz($this->e, $this->lat_2, $sin2);
+        $ms2 = $this->msfnz($e, $sin2, $cos2);
+        $ts2 = $this->tsfnz($e, $this->lat_2, $sin2);
 
-        $ts0 = $this->tsfnz($this->e, $this->lat_0, sin($this->lat_0));
+        $ts0 = $this->tsfnz($e, $this->lat_0, sin($this->lat_0));
 
         if (abs($this->lat_1 - $this->lat_2) > static::EPSLN) {
             $this->ns = log($ms1 / $ms2) / log($ts1 / $ts2);
@@ -145,10 +142,19 @@ class Lcc extends AbstractProjection
 
     /**
      * Lambert Conformal conic forward equations.
-     * Map Geodetic to ??? (some kind of generic x,y?)
+     * Map Geodetic to Enu.
+     *
+     * TODO: Get the ellipsoid parameters from the datum. The point may have a datum,
+     * and the projection may have a datum. At least one must be supplied. If both are
+     * set but the two do not match, then do a datum shift on the Geodetic point first.
      */
     public function forward(Geodetic $geodetic)
     {
+        // Shift the datum of the point if it's not the same as the projecion.
+        if ($geodetic->getDatum() && ! $geodetic->getDatum()->isSame($this->datum)) {
+            $geodetic = $geodetic->shiftDatum($this->datum);
+        }
+
         // Get the lat/long as radians.
         list($lat, $long) = array_values($geodetic->toArray(Geodetic::RADIANS));
 
@@ -158,10 +164,13 @@ class Lcc extends AbstractProjection
         // CHECKME: presumably the projection will have a datum that the geodetic coordinate
         // must be aligned to. If they are not, then do we shift the coordinate datum first,
         // or perhaps raise an exception? Does this projection itself even get a datum?
-        $a = $this->a;
+        //$a = $this->a;
+
+        $a = $this->datum->getA();
+        $e = $this->datum->getE();
 
         if ($con > static::EPSLN) {
-            $ts = $this->tsfnz($this->e, $lat, sin($lat));
+            $ts = $this->tsfnz($e, $lat, sin($lat));
             $rh1 = ($a * $this->f0 * pow($ts, $this->ns));
         } else {
             $con = $lat * $this->ns;
@@ -194,7 +203,7 @@ class Lcc extends AbstractProjection
         // The projection may have its own datum, or it could just use the point datum
         // on-the-fly.
 
-        return new Enu(['x' => $x, 'y' => $y], $geodetic->getDatum());
+        return new Enu(['x' => $x, 'y' => $y], $this->datum);
     }
 
     /**
@@ -205,6 +214,11 @@ class Lcc extends AbstractProjection
      */
     public function inverse(Enu $enu)
     {
+        // Shift the datum of the point if it's not the same as the projecion.
+        if ($enu->getDatum() && ! $enu->getDatum()->isSame($this->datum)) {
+            $enu = $enu->shiftDatum($this->datum);
+        }
+
         $x = $enu->getX();
         $y = $enu->getY();
 
@@ -225,10 +239,13 @@ class Lcc extends AbstractProjection
             $theta = atan2($con * $x, $con * $y);
         }
 
+        $a = $this->datum->getA();
+        $e = $this->datum->getE();
+
         if ($rh1 != 0 || $this->ns > 0.0) {
             $con = 1.0 / $this->ns;
-            $ts = pow(($rh1 / ($this->a * $this->f0)), $con);
-            $lat = $this->phi2z($this->e, $ts);
+            $ts = pow(($rh1 / ($a * $this->f0)), $con);
+            $lat = $this->phi2z($e, $ts);
 
             if ($lat == -9999) {
                 return null;
@@ -241,7 +258,7 @@ class Lcc extends AbstractProjection
 
         return new Geodetic(
             ['lat' => rad2deg($lat), 'long' => rad2deg($long)],
-            $enu->getDatum()
+            $this->datum
         );
     }
 }

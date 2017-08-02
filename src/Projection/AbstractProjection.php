@@ -2,9 +2,19 @@
 
 namespace proj4php\Projection;
 
+use proj4php\Ellipsoid;
+
 abstract class AbstractProjection
 {
     const EPSLN = 1.0e-10;
+
+    /**
+     * Datum (with ellipsoid) parameters are held here.
+     * A projection may have its own datum, or the datum can be taken
+     * from the points supplied.
+     */
+
+     protected $datum;
 
     /**
      * Function to compute the constant small t for use in the forward
@@ -216,6 +226,22 @@ abstract class AbstractProjection
         }
     }
 
+    /**
+     * Get a property.
+     */
+    protected function getProperty($name, $default = null)
+    {
+        $getterName = 'get' . ucfirst(str_replace('_', '', strtolower($name)));
+
+        if (method_exists($this, $getterName)) {
+            $this->gsetterName($value, $default);
+        } elseif (property_exists($this, $name)) {
+            return $this->$name;
+        } else {
+            return $default;
+        }
+    }
+
     public function getClone()
     {
         return clone $this;
@@ -226,10 +252,14 @@ abstract class AbstractProjection
      * TODO: support datum and ellipsoid. Also default both of these when asked for it
      * and not supplied. a, b, rf, es, ep2 will all come from the ellipsoid if requested
      * and not overridden. Set the datum, and then use these ellipsoid parameters, and
-     * towgs84 if supplied, to configure the datum and allipsoid.
+     * towgs84 if supplied, to configure the datum and ellipsoid. One possible downside
+     * will be too many calculations, e.g. setting a and b will derive rf, then setting
+     * rf must be done in the context of A or B again, deriving the other.
      */
     protected function parseOptions(array $options = [])
     {
+        $ellipsoid = null;
+
         foreach ($options as $name => $value) {
             $lname = strtolower($name);
 
@@ -239,10 +269,25 @@ abstract class AbstractProjection
                     break;
                 case 'a':
                 case 'b':
-                    $this->setProperty($lname, deg2rad($value));
+                    $this->setProperty($lname, floatval($value));
                     break;
                 case 'rf':
                     $this->setProperty($lname, floatval($value));
+                    break;
+                case 'datum':
+                    // TODO: This will be a Datum object, not just a name.
+                    $this->datum = $value;
+                    break;
+                case 'ellipsoid':
+                case 'ellips':
+                    // TODO: This will be an Ellipsoid object, not just a name.
+                    // It needs to go into the datum, with a datum created if it does not
+                    // already exist.
+                    $ellipsoid = $value;
+                    break;
+                case 'towgs84':
+                    // TODO: These parameters to go into the datum.
+                    // It may be a CSV string or an array.
                     break;
                 case 'lat0':
                 case 'lat_0':
@@ -294,7 +339,39 @@ abstract class AbstractProjection
                 case 'utmsouth':
                     $this->setProperty('utmSouth', true);
                     break;
+                case 'north':
+                case 'utmnorth':
+                    $this->setProperty('utmSouth', false);
+                    break;
             }
+
+            // Do we have enough to MAKE an ellipsoid?
+            if ($this->getProperty('a') !== null && $this->getProperty('b') !== null) {
+                $ellipsoid = Ellipsoid::fromAB($this->a, $this->b);
+                //var_dump($ellipsoid);
+            }
+            if ($this->getProperty('a') !== null && $this->getProperty('rf') !== null) {
+                $ellipsoid = Ellipsoid::fromARf($this->a, $this->rf);
+                //var_dump($ellipsoid);
+            }
+
+            // Then see if we have parameters to modify the ellipsoid, e.g. just an 'a' or just an 'rf'.
+            // ...
+
+            // If we have an ellipsoid, then we need a datum to put it in.
+            // If we don't have a datum, then create a default one.
+            // ...
+
+            // If we have parameters to modify the datum (e..g. towgs84) then
+            // modify it now (creating a datum if we need to).
+            // ...
+
+            // This all seems rather messy, like there is no simple way to build up
+            // these parameters step-by-step. We need a full set of parameters to build
+            // the objects in one go, and then not all objects are going to be mandatory.
+            // So is this all part of parsing the main source parameters and maybe not
+            // something done here? Do we have to insist we get a full datum at this point,
+            // comlete with ellipsoid and shift parameters?
         }
     }
 

@@ -299,6 +299,11 @@ class Datum
         return $this->getEllipsoid()->getRf();
     }
 
+    public function getE()
+    {
+        return $this->getEllipsoid()->getE();
+    }
+
     public function getEs()
     {
         return $this->getEllipsoid()->getEs();

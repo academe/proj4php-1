@@ -244,6 +244,7 @@ class Ellipsoid
     public function getE()
     {
         if ($this->e === null) {
+            // Note: $div * $div is (b^2 / a^2)
             $div = $this->getB() / $this->getA();
             $this->e = sqrt(1.0 - $div * $div);
         }
