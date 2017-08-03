@@ -6,8 +6,12 @@ namespace proj4php;
  * An ellipsoid value object.
  */
 
+use proj4php\IsCloneable;
+
 class Ellipsoid
 {
+    use IsCloneable;
+
     /**
      * The code to identify the ellipsoid.
      */
@@ -86,11 +90,6 @@ class Ellipsoid
         $this->setRf($rf);
         $this->code = $code;
         $this->name = $name;
-    }
-
-    protected function getClone()
-    {
-        return clone $this;
     }
 
     /**

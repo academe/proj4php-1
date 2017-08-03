@@ -32,23 +32,19 @@ namespace proj4php\Projection;
   Initialize Transverse Mercator projection
  */
 
+use proj4php\Point\Utm as UtmPoint;
 use proj4php\Point\Geodetic;
+use proj4php\Point\Enu;
 
-class Utm extends AbstractProjection
+class Utm extends Tmerc
 {
     // Indicates that coordinates are in the Southern hemisphere.
     protected $utmSouth = false;
-
-    // Proprerties of the ellipsoid.
-    protected $a;
-    protected $ep2;
-    protected $es;
 
     protected $zone;
 
     protected $k_0 = 0.9996;
     protected $lat_0 = 0.0;
-    protected $sphere = false;
     protected $x_0 = 500000.0;
 
     // Derived.
@@ -70,12 +66,14 @@ class Utm extends AbstractProjection
         // It could also vary per coordinate when transforming forward.
         $this->y_0 = $this->utmSouth ? 10000000.0 : 0.0;
 
-        $this->e0 = $this->e0fn($this->es);
-        $this->e1 = $this->e1fn($this->es);
-        $this->e2 = $this->e2fn($this->es);
-        $this->e3 = $this->e3fn($this->es);
+        $es = $this->getEs();
 
-        $this->ml0 = $this->a * $this->mlfn($this->e0, $this->e1, $this->e2, $this->e3, $this->lat_0);
+        $this->e0 = $this->e0fn($es);
+        $this->e1 = $this->e1fn($es);
+        $this->e2 = $this->e2fn($es);
+        $this->e3 = $this->e3fn($es);
+
+        $this->ml0 = $this->getA() * $this->mlfn($this->e0, $this->e1, $this->e2, $this->e3, $this->lat_0);
     }
 
     /**
@@ -84,16 +82,22 @@ class Utm extends AbstractProjection
      */
     public function forward(Geodetic $geodetic)
     {
-        list($lat, $long) = array_values($geodetic->toArray(Geodetic::RADIANS));
+        // Get the lat/long as radians.
+        $lat = $geodetic->getLat(Geodetic::RADIANS);
+        $long = $geodetic->getLong(Geodetic::RADIANS);
 
         $zone = $this->zone;
         $lon_0 = $this->lon_0;
 
-        // If no zone supplied, then derive it from the longitude.
-        // TODO: Special exceptions listed here:
-        // https://stackoverflow.com/questions/9186496/determining-utm-zone-to-convert-from-longitude-latitude
+        // Ellipsoid parameters.
+        $a = $this->getA();
+        $ep2 = $this->getEp2();
+        $es = $this->getEs();
+        $sphere = $this->isSphere();
+
+        // If no zone supplied, then derive it from the longitude and latitude.
         if ($zone === null) {
-            $zone = (floor((rad2deg($long) + 180) / 6) % 60) + 1;
+            $zone = $this->longToZone($long, $lat);
         }
 
         if ($lon_0 === null) {
@@ -106,7 +110,7 @@ class Utm extends AbstractProjection
         $sin_phi = sin($lat);
         $cos_phi = cos($lat);
 
-        if (isset($this->sphere) && $this->sphere === true) {
+        if ($sphere) {
             // spherical form
 
             $b = $cos_phi * sin($delta_lon);
@@ -114,69 +118,78 @@ class Utm extends AbstractProjection
             if ((abs(abs($b) - 1.0)) < static::EPSLN) {
                 throw new \Exception('tmerc:forward: Point projects into infinity');
             } else {
-                $x = 0.5 * $this->a * $this->k_0 * log((1.0 + $b) / (1.0 - $b));
+                $x = 0.5 * $a * $this->k_0 * log((1.0 + $b) / (1.0 - $b));
                 $con = acos($cos_phi * cos($delta_lon) / sqrt(1.0 - $b * $b));
 
                 if ($lat < 0) {
                     $con = -$con;
                 }
 
-                $y = $this->a * $this->k_0 * ($con - $this->lat_0);
+                $y = $a * $this->k_0 * ($con - $this->lat_0);
             }
         } else {
             $al = $cos_phi * $delta_lon;
             $als = pow($al, 2);
 
-            $c = $this->ep2 * pow($cos_phi, 2);
+            $c = $ep2 * pow($cos_phi, 2);
 
             $tq = tan($lat);
             $t = pow($tq, 2);
 
-            $con = 1.0 - $this->es * pow($sin_phi, 2);
-            $n = $this->a / sqrt($con);
+            $con = 1.0 - $es * pow($sin_phi, 2);
+            $n = $a / sqrt($con);
 
-            $ml = $this->a * $this->mlfn($this->e0, $this->e1, $this->e2, $this->e3, $lat);
+            $ml = $a * $this->mlfn($this->e0, $this->e1, $this->e2, $this->e3, $lat);
 
-            $x = $this->k_0 * $n * $al * (1.0 + $als / 6.0 * (1.0 - $t + $c + $als / 20.0 * (5.0 - 18.0 * $t + pow($t, 2) + 72.0 * $c - 58.0 * $this->ep2))) + $this->x_0;
+            $x = $this->k_0 * $n * $al * (1.0 + $als / 6.0 * (1.0 - $t + $c + $als / 20.0 * (5.0 - 18.0 * $t + pow($t, 2) + 72.0 * $c - 58.0 * $ep2))) + $this->x_0;
 
-            $y = $this->k_0 * ($ml - $this->ml0 + $n * $tq * ($als * (0.5 + $als / 24.0 * (5.0 - $t + 9.0 * $c + 4.0 * pow($c, 2) + $als / 30.0 * (61.0 - 58.0 * $t + pow($t, 2) + 600.0 * $c - 330.0 * $this->ep2))))) + $this->y_0;
+            $y = $this->k_0 * ($ml - $this->ml0 + $n * $tq * ($als * (0.5 + $als / 24.0 * (5.0 - $t + 9.0 * $c + 4.0 * pow($c, 2) + $als / 30.0 * (61.0 - 58.0 * $t + pow($t, 2) + 600.0 * $c - 330.0 * $ep2))))) + $this->y_0;
         }
 
-        // TODO: plus north/south indicator.
-        return ['x' => $x, 'y' => $y, 'zone' => $zone];
+        // The Utm point extends the Enu point with zone information.
+        // FIXME: the south hemisphere flag.
+
+        return new UtmPoint(['easting' => $x, 'northing' => $y, 'zone' => $zone, 'south' => false], $this->datum);
     }
 
     /**
-     * Transverse Mercator Inverse  -  x/y to long/lat
+     * Universal Transverse Mercator Inverse - x/y/zone/hemisohere to long/lat
      */
-    public function inverse($p)
+    public function inverse(Enu $enu)
     {
-        // TODO: this will be a point object of some sort.
-        // It could also include its own zone, lon_0 and south indicator.
-        // Should checking all that be part of tehe transform, or should we just stick
-        // to lon_0 and south here, with the zones being handled entirely by the point?
-        // That feels more right to me. We still need to be able to force a zone overlap
-        // when going forward though. Maybe for the inverse too?
+        $x = $enu->getEasting();
+        $y = $enu->getNorthing();
 
-        list($x, $y) = array_values($p);
-
-        $zone = $this->zone;
+        //$zone = $this->zone;
         $lon_0 = $this->lon_0;
 
+        // Ellipsoid parameters.
+        $a = $this->getA();
+        $ep2 = $this->getEp2();
+        $es = $this->getEs();
+        $sphere = $this->isSphere();
+
+        // The zone may be available in the $enu point, so use that over
+        // whatever the projection is expecting.
+        // CHECKME: is zone ever zero?
+        if ($enu instanceof UtmPoint && $zone = $enu->getZone()) {
+            $lon_0 = $this->zoneToLon0($zone);
+        }
+
         if ($lon_0 === null) {
-            throw new \Exception('lon_0 or zone missing in inverse transform');
+            throw new \Exception('Missing lon_0 or zone in inverse transform');
         }
 
         // The ellipsoid can tell us whether it is a sphere.
-        if ($this->sphere === true) {
+        if ($sphere) {
             // Spherical form.
 
-            $f = exp($x / ($this->a * $this->k_0));
+            $f = exp($x / ($a * $this->k_0));
             $g = 0.5 * ($f - 1 / $f);
-            $temp = $this->lat_0 + $y / ($this->a * $this->k_0);
+            $temp = $this->lat_0 + $y / ($a * $this->k_0);
             $h = cos($temp);
             $con = sqrt((1.0 - $h * $h) / (1.0 + $g * $g));
-            $lat = $this->asinz( $con );
+            $lat = $this->asinz($con);
 
             if ($temp < 0) {
                 $lat = -$lat;
@@ -193,7 +206,7 @@ class Utm extends AbstractProjection
             $x = $x - $this->x_0;
             $y = $y - $this->y_0;
 
-            $con = ($this->ml0 + $y / $this->k_0) / $this->a;
+            $con = ($this->ml0 + $y / $this->k_0) / $a;
             $phi = $con;
 
             for ($i = 0; true; $i++) {
@@ -223,22 +236,22 @@ class Utm extends AbstractProjection
                 $cos_phi = cos($phi);
                 $tan_phi = tan($phi);
 
-                $c = $this->ep2 * pow($cos_phi, 2);
+                $c = $ep2 * pow($cos_phi, 2);
                 $cs = pow($c, 2);
 
                 $t = pow($tan_phi, 2);
                 $ts = pow($t, 2);
 
-                $con = 1.0 - $this->es * pow($sin_phi, 2);
+                $con = 1.0 - $es * pow($sin_phi, 2);
 
-                $n = $this->a / sqrt($con);
-                $r = $n * (1.0 - $this->es) / $con;
+                $n = $a / sqrt($con);
+                $r = $n * (1.0 - $es) / $con;
 
                 $d = $x / ($n * $this->k_0);
                 $ds = pow($d, 2);
 
-                $lat = $phi - ($n * $tan_phi * $ds / $r) * (0.5 - $ds / 24.0 * (5.0 + 3.0 * $t + 10.0 * $c - 4.0 * $cs - 9.0 * $this->ep2 - $ds / 30.0 * (61.0 + 90.0 * $t + 298.0 * $c + 45.0 * $ts - 252.0 * $this->ep2 - 3.0 * $cs)));
-                $lon = $this->adjust_lon($lon_0 + ($d * (1.0 - $ds / 6.0 * (1.0 + 2.0 * $t + $c - $ds / 20.0 * (5.0 - 2.0 * $c + 28.0 * $t - 3.0 * $cs + 8.0 * $this->ep2 + 24.0 * $ts))) / $cos_phi));
+                $lat = $phi - ($n * $tan_phi * $ds / $r) * (0.5 - $ds / 24.0 * (5.0 + 3.0 * $t + 10.0 * $c - 4.0 * $cs - 9.0 * $ep2 - $ds / 30.0 * (61.0 + 90.0 * $t + 298.0 * $c + 45.0 * $ts - 252.0 * $ep2 - 3.0 * $cs)));
+                $lon = $this->adjust_lon($lon_0 + ($d * (1.0 - $ds / 6.0 * (1.0 + 2.0 * $t + $c - $ds / 20.0 * (5.0 - 2.0 * $c + 28.0 * $t - 3.0 * $cs + 8.0 * $ep2 + 24.0 * $ts))) / $cos_phi));
             } else {
                 $lat = M_PI_2 * $this->sign($y);
                 $lon = $lon_0;
@@ -257,6 +270,26 @@ class Utm extends AbstractProjection
     protected function zoneToLon0($zone)
     {
         return deg2rad((6 * abs($zone)) - 183);
+    }
+
+    /**
+     * Get the zone for a given longitude and latitude.
+     * The latitude can be supplied for exceptions listed here:
+     * https://stackoverflow.com/questions/9186496/determining-utm-zone-to-convert-from-longitude-latitude
+     *
+     * @param float $long The longitude in radians
+     * @param float|null $lat The optional latitude in radians
+     * @return int The zone number 1 to 60
+     */
+    protected function longToZone($long, $lat = null)
+    {
+        $zone = (floor((rad2deg($long) + 180) / 6) % 60) + 1;
+
+        if ($lat !== null) {
+            // TODO: exceptions
+        }
+
+        return $zone;
     }
 
     public function withZone($zone)

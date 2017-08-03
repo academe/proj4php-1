@@ -12,10 +12,13 @@ namespace proj4php;
  * Geodetic Datum
  */
 
+use proj4php\IsCloneable;
 use Exception;
 
 class Datum
 {
+    use IsCloneable;
+
     /**
      * Number of shift parameters we have.
      * WGS84 will return shift parameters of "none", as there is
@@ -135,6 +138,11 @@ class Datum
         }
 
         throw new \Exception(sprintf('Unsupported units "%s"', $unit));
+    }
+
+    public function withShiftParameters($shiftParams)
+    {
+        return $this->getClone()->setShiftParams($shiftParams);
     }
 
     protected function setShiftParams($shiftParams)
@@ -312,6 +320,16 @@ class Datum
     public function getEp2()
     {
         return $this->getEllipsoid()->getEp2();
+    }
+
+    public function withEllipsoid(Ellipsoid $ellipsoid)
+    {
+        return $this->getClone()->setEllipsoid($ellipsoid);
+    }
+
+    public function isSphere()
+    {
+        return $this->getEllipsoid()->isSphere();
     }
 
     protected function setEllipsoid(Ellipsoid $ellipsoid = null)

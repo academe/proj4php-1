@@ -2,10 +2,14 @@
 
 namespace proj4php\Projection;
 
+use proj4php\IsCloneable;
 use proj4php\Ellipsoid;
+use proj4php\Datum;
 
 abstract class AbstractProjection
 {
+    use IsCloneable;
+
     const EPSLN = 1.0e-10;
 
     /**
@@ -30,7 +34,7 @@ abstract class AbstractProjection
      * @param float $sinphi
      * @return float
      */
-    public static function tsfnz($eccent, $phi, $sinphi)
+    public function tsfnz($eccent, $phi, $sinphi)
     {
         $con = $eccent * $sinphi;
         $com = 0.5 * $eccent;
@@ -45,7 +49,7 @@ abstract class AbstractProjection
      * @param float $lon Angle in radians
      * @return float
      */
-    public static function adjust_lon($lon)
+    public function adjust_lon($lon)
     {
         return (abs($lon) < M_PI)
             ? $lon
@@ -59,7 +63,7 @@ abstract class AbstractProjection
      * @param int|float $x The numeric valid to test.
      * @return int -1 for negative; +1 for positive or zero
      */
-    public static function sign($x)
+    public function sign($x)
     {
         return ($x < 0.0 ? -1 : 1);
     }
@@ -73,7 +77,7 @@ abstract class AbstractProjection
      * @param float $cosphi
      * @return float
      */
-    public static function msfnz($eccent, $sinphi, $cosphi)
+    public function msfnz($eccent, $sinphi, $cosphi)
     {
         $con = $eccent * $sinphi;
         return $cosphi / (sqrt(1.0 - $con * $con));
@@ -87,7 +91,7 @@ abstract class AbstractProjection
      * @param float $sinphi
      * @return float
      */
-    public static function latiso($eccent, $phi, $sinphi)
+    public function latiso($eccent, $phi, $sinphi)
     {
         if (abs($phi) > M_PI_2) {
             return +NaN;
@@ -117,7 +121,7 @@ abstract class AbstractProjection
      * @param float $ts
      * @return float|int
      */
-    public static function phi2z($eccent, $ts)
+    public function phi2z($eccent, $ts)
     {
         $eccnth = 0.5 * $eccent;
         $phi = M_PI_2 - 2 * atan($ts);
@@ -147,7 +151,7 @@ abstract class AbstractProjection
      * @param float $x
      * @return float
      */
-    public static function e0fn($x)
+    public function e0fn($x)
     {
         return 1.0 - 0.25 * $x * (1.0 + $x / 16.0 * (3.0 + 1.25 * $x));
     }
@@ -156,7 +160,7 @@ abstract class AbstractProjection
      * @param float $x
      * @return float
      */
-    public static function e1fn($x)
+    public function e1fn($x)
     {
         return (0.375 * $x * (1.0 + 0.25 * $x * (1.0 + 0.46875 * $x)));
     }
@@ -165,7 +169,7 @@ abstract class AbstractProjection
      * @param float $x
      * @return float
      */
-    public static function e2fn($x)
+    public function e2fn($x)
     {
         return (0.05859375 * $x * $x * (1.0 + 0.75 * $x));
     }
@@ -174,7 +178,7 @@ abstract class AbstractProjection
      * @param float $x
      * @return float
      */
-    public static function e3fn($x)
+    public function e3fn($x)
     {
         return ($x * $x * $x * (35.0 / 3072.0));
     }
@@ -187,7 +191,7 @@ abstract class AbstractProjection
      * @param float $phi
      * @return float
      */
-    public static function mlfn($e0, $e1, $e2, $e3, $phi)
+    public function mlfn($e0, $e1, $e2, $e3, $phi)
     {
         return (
             $e0 * $phi
@@ -203,7 +207,7 @@ abstract class AbstractProjection
      * @param float $x
      * @return float
      */
-    public static function asinz($x)
+    public function asinz($x)
     {
         return asin(
             abs($x) > 1.0 ? ($x > 1.0 ? 1.0 : -1.0) : $x 
@@ -242,9 +246,60 @@ abstract class AbstractProjection
         }
     }
 
-    public function getClone()
+    /**
+     *
+     */
+    public function getA()
     {
-        return clone $this;
+        return $this->datum->getA();
+    }
+
+    /**
+     *
+     */
+    public function getB()
+    {
+        return $this->datum->getB();
+    }
+
+    /**
+     *
+     */
+    public function getRf()
+    {
+        return $this->datum->getRf();
+    }
+
+    /**
+     *
+     */
+    public function getE()
+    {
+        return $this->datum->getE();
+    }
+
+    /**
+     *
+     */
+    public function getEs()
+    {
+        return $this->datum->getEs();
+    }
+
+    /**
+     *
+     */
+    public function getEp2()
+    {
+        return $this->datum->getEp2();
+    }
+
+    /**
+     *
+     */
+    public function isSphere()
+    {
+        return $this->datum->isSphere();
     }
 
     /**
@@ -259,6 +314,7 @@ abstract class AbstractProjection
     protected function parseOptions(array $options = [])
     {
         $ellipsoid = null;
+        $towgs84 = null;
 
         foreach ($options as $name => $value) {
             $lname = strtolower($name);
@@ -267,28 +323,35 @@ abstract class AbstractProjection
                 case 'title':
                     $this->setProperty($lname, $value);
                     break;
+
+                // Keep the ellipsoid parameters if we have any.
                 case 'a':
                 case 'b':
-                    $this->setProperty($lname, floatval($value));
-                    break;
                 case 'rf':
-                    $this->setProperty($lname, floatval($value));
+                    $$lname = floatval($value);
                     break;
+
                 case 'datum':
                     // TODO: This will be a Datum object, not just a name.
+                    // Or maybe we can set up a datum from data alone, an array of parameters?
                     $this->datum = $value;
                     break;
+
                 case 'ellipsoid':
                 case 'ellips':
                     // TODO: This will be an Ellipsoid object, not just a name.
                     // It needs to go into the datum, with a datum created if it does not
                     // already exist.
+                    // Or create a new ellipsoid from data alone.
                     $ellipsoid = $value;
                     break;
+
                 case 'towgs84':
                     // TODO: These parameters to go into the datum.
                     // It may be a CSV string or an array.
+                    $towgs84 = $value;
                     break;
+
                 case 'lat0':
                 case 'lat_0':
                     $this->setProperty('lat_0', deg2rad($value));
@@ -345,36 +408,39 @@ abstract class AbstractProjection
                     break;
             }
 
-            // Do we have enough to MAKE an ellipsoid?
-            if ($this->getProperty('a') !== null && $this->getProperty('b') !== null) {
-                $ellipsoid = Ellipsoid::fromAB($this->a, $this->b);
-                //var_dump($ellipsoid);
-            }
-            if ($this->getProperty('a') !== null && $this->getProperty('rf') !== null) {
-                $ellipsoid = Ellipsoid::fromARf($this->a, $this->rf);
-                //var_dump($ellipsoid);
+            // If we have some ellipsoid parameters, then create an ellipsoid from them.
+            // These parameters completely override any ellipsoid that has been supplied.
+            if (isset($a) && isset($b)) {
+                $ellipsoid = Ellipsoid::fromAB($a, $b);
+            } elseif (isset($a) && isset($rf)) {
+                $ellipsoid = Ellipsoid::fromARf($a, $rf);
             }
 
-            // Then see if we have parameters to modify the ellipsoid, e.g. just an 'a' or just an 'rf'.
-            // ...
+            // If we have an ellipsoid but no datum, then create a datum.
+            if ($this->datum === null) {
+                $this->datum = new Datum($ellipsoid, $towgs84);
 
-            // If we have an ellipsoid, then we need a datum to put it in.
-            // If we don't have a datum, then create a default one.
-            // ...
+                // We have used these two up now.
+                $ellipsoid = null;
+                $towgs84 = null;
+            }
 
-            // If we have parameters to modify the datum (e..g. towgs84) then
-            // modify it now (creating a datum if we need to).
-            // ...
+            // Additional parameters have been provided to suplement the datum.
+            if ($towgs84 !== null) {
+                $this->datum = $this->datum->withShiftParameters($towgs84);
+            }
 
-            // This all seems rather messy, like there is no simple way to build up
-            // these parameters step-by-step. We need a full set of parameters to build
-            // the objects in one go, and then not all objects are going to be mandatory.
-            // So is this all part of parsing the main source parameters and maybe not
-            // something done here? Do we have to insist we get a full datum at this point,
-            // comlete with ellipsoid and shift parameters?
+            // An alternate ellipsoid has also been supplied with the datum, so put
+            // this ellipsoid into the datum.
+            if ($ellipsoid !== null) {
+                $this->datum = $this->datum->withEllipsoid($ellipsoid);
+            }
         }
     }
 
+    /**
+     * FIXME: The datum will be returned as an object.
+     */
     public function toArray()
     {
         return get_object_vars($this);
