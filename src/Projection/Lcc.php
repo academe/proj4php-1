@@ -32,8 +32,7 @@ namespace proj4php\Projection;
 // Initialize the Lambert Conformal conic projection
 // -----------------------------------------------------------------
 
-use proj4php\Point\Geodetic;
-use proj4php\Point\Enu;
+use proj4php\Datum;
 
 class Lcc extends AbstractProjection
 {
@@ -134,34 +133,25 @@ class Lcc extends AbstractProjection
 
     /**
      * Lambert Conformal conic forward equations.
-     * Map Geodetic to Enu.
+     * Map Geodetic to Cartesian.
      *
-     * TODO: Get the ellipsoid parameters from the datum. The point may have a datum,
+     * Get the ellipsoid parameters from the datum. The point may have a datum,
      * and the projection may have a datum. At least one must be supplied. If both are
      * set but the two do not match, then do a datum shift on the Geodetic point first.
+     *
+     * The point will always be in the same datum as the projection here, so
+     * we can get all datum details from the projection only.
+     * Passing the datum in may make it more flexible.
      */
-    public function forward(Geodetic $geodetic)
+    public function forward($lat, $long)
     {
-        // Shift the datum of the point if it's not the same as the projecion.
-        if ($geodetic->getDatum() && ! $geodetic->getDatum()->isSame($this->datum)) {
-            $geodetic = $geodetic->shiftDatum($this->datum);
-        }
-
-        // Get the lat/long as radians.
-        $lat = $geodetic->getLat(Geodetic::RADIANS);
-        $long = $geodetic->getLong(Geodetic::RADIANS);
-
         // Ellipsoid parameters.
-        $a = $this->getA();
-        $e = $this->getE();
+        $datum = $this->getDatum();
+        $a = $datum->getA();
+        $e = $datum->getE();
 
         // M_PI_2 is PI/2 or 90 degrees
         $con = abs(abs($lat) - M_PI_2);
-
-        // CHECKME: presumably the projection will have a datum that the geodetic coordinate
-        // must be aligned to. If they are not, then do we shift the coordinate datum first,
-        // or perhaps raise an exception? Does this projection itself even get a datum?
-        //$a = $this->a;
 
         if ($con > static::EPSLN) {
             $ts = $this->tsfnz($e, $lat, sin($lat));
@@ -170,8 +160,7 @@ class Lcc extends AbstractProjection
             $con = $lat * $this->ns;
 
             if ($con <= 0) {
-                Proj4php::reportError('lcc:forward: No Projection');
-                return;
+                throw new \Exception('lcc:forward: No Projection');
             }
 
             $rh1 = 0;
@@ -181,28 +170,20 @@ class Lcc extends AbstractProjection
         $x = $this->k_0 * ($rh1 * sin($theta)) + $this->x_0;
         $y = $this->k_0 * ($this->rh - $rh1 * cos($theta)) + $this->y_0;
 
-        return new Enu(['easting' => $x, 'northing' => $y], $this->datum);
+        return ['x' => $x, 'y' => $y];
     }
 
     /**
      * Lambert Conformal Conic inverse equations--mapping x,y to lat/long
      * 
-     * @param Enu $enu
+     * @param Cartesian $cartesian
      * @return Geodetic
      */
-    public function inverse(Enu $enu)
+    public function inverse($x, $y, Datum $datum, array $options = [])
     {
-        // Shift the datum of the point if it's not the same as the projecion.
-        if ($enu->getDatum() && ! $enu->getDatum()->isSame($this->datum)) {
-            $enu = $enu->shiftDatum($this->datum);
-        }
-
-        $x = $enu->getX();
-        $y = $enu->getY();
-
         // Ellipsoid parameters.
-        $a = $this->getA();
-        $e = $this->getE();
+        $a = $datum->getA();
+        $e = $datum->getE();
 
         $x = ($x - $this->x_0) / $this->k_0;
         $y = ($this->rh - ($y - $this->y_0) / $this->k_0);
@@ -235,9 +216,7 @@ class Lcc extends AbstractProjection
 
         $long = $this->adjust_lon($theta / $this->ns + $this->lon_0);
 
-        return new Geodetic(
-            ['lat' => rad2deg($lat), 'long' => rad2deg($long)],
-            $this->datum
-        );
+        // Return radians for consistency with the forward transform.
+        return ['lat' => $lat, 'long' => $long];
     }
 }

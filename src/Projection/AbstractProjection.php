@@ -2,6 +2,8 @@
 
 namespace proj4php\Projection;
 
+use proj4php\Point\Cartesian;
+use proj4php\Point\Geodetic;
 use proj4php\IsCloneable;
 use proj4php\Ellipsoid;
 use proj4php\Datum;
@@ -14,8 +16,8 @@ abstract class AbstractProjection
 
     /**
      * Datum (with ellipsoid) parameters are held here.
-     * A projection may have its own datum, or the datum can be taken
-     * from the points supplied.
+     * A projection will have its own datum, or the datum can be taken
+     * from the points supplied when transforming projections.
      */
 
      protected $datum;
@@ -251,7 +253,7 @@ abstract class AbstractProjection
      */
     public function getA()
     {
-        return $this->datum->getA();
+        return $this->getDatum()->getA();
     }
 
     /**
@@ -259,7 +261,7 @@ abstract class AbstractProjection
      */
     public function getB()
     {
-        return $this->datum->getB();
+        return $this->getDatum()->getB();
     }
 
     /**
@@ -267,7 +269,7 @@ abstract class AbstractProjection
      */
     public function getRf()
     {
-        return $this->datum->getRf();
+        return $this->getDatum()->getRf();
     }
 
     /**
@@ -275,7 +277,7 @@ abstract class AbstractProjection
      */
     public function getE()
     {
-        return $this->datum->getE();
+        return $this->getDatum()->getE();
     }
 
     /**
@@ -283,7 +285,7 @@ abstract class AbstractProjection
      */
     public function getEs()
     {
-        return $this->datum->getEs();
+        return $this->getDatum()->getEs();
     }
 
     /**
@@ -291,7 +293,7 @@ abstract class AbstractProjection
      */
     public function getEp2()
     {
-        return $this->datum->getEp2();
+        return $this->getDatum()->getEp2();
     }
 
     /**
@@ -299,7 +301,23 @@ abstract class AbstractProjection
      */
     public function isSphere()
     {
-        return $this->datum->isSphere();
+        return $this->getDatum()->isSphere();
+    }
+
+    public function getDatum()
+    {
+        return $this->datum;
+    }
+
+    protected function setDatum($value)
+    {
+        $this->datum = $value;
+        return $this;
+    }
+
+    public function withDatum(Datum $value)
+    {
+        return $this->getClone()->setDatum($datum);
     }
 
     /**
@@ -334,7 +352,7 @@ abstract class AbstractProjection
                 case 'datum':
                     // TODO: This will be a Datum object, not just a name.
                     // Or maybe we can set up a datum from data alone, an array of parameters?
-                    $this->datum = $value;
+                    $this->setDatum($value);
                     break;
 
                 case 'ellipsoid':
@@ -417,8 +435,8 @@ abstract class AbstractProjection
             }
 
             // If we have an ellipsoid but no datum, then create a datum.
-            if ($this->datum === null) {
-                $this->datum = new Datum($ellipsoid, $towgs84);
+            if ($this->getDatum() === null) {
+                $this->setDatum(new Datum($ellipsoid, $towgs84));
 
                 // We have used these two up now.
                 $ellipsoid = null;
@@ -427,15 +445,71 @@ abstract class AbstractProjection
 
             // Additional parameters have been provided to suplement the datum.
             if ($towgs84 !== null) {
-                $this->datum = $this->datum->withShiftParameters($towgs84);
+                $this->setDatum($this->getDatum()->withShiftParameters($towgs84));
             }
 
             // An alternate ellipsoid has also been supplied with the datum, so put
             // this ellipsoid into the datum.
             if ($ellipsoid !== null) {
-                $this->datum = $this->datum->withEllipsoid($ellipsoid);
+                $this->setDatum($this->getDatum()->withEllipsoid($ellipsoid));
             }
         }
+    }
+
+    /**
+     * The forward transform, from Geodetic Lat/Long to a Cartesian projection.
+     */
+    public function geodeticToCartesian(Geodetic $geodetic)
+    {
+        // Shift the datum of the geodetic point if it's not the same as the projecion.
+        // The projection datum is here we cant the final projected point to end up.
+
+        if ($geodetic->getDatum() && ! $geodetic->getDatum()->isSame($this->datum)) {
+            $geodetic = $geodetic->shiftDatum($this->datum);
+        }
+
+        // Get the lat/long as radians.
+        $lat = $geodetic->getLat(Geodetic::RADIANS);
+        $long = $geodetic->getLong(Geodetic::RADIANS);
+
+        // TODO: should we pass in the datum here? The point has been shifted to the
+        // projection datum (if needed) so $this->getDatum() will provide the datum.
+        $coords = $this->forward($lat, $long);
+
+        return new Cartesian($coords, $this);
+    }
+
+    /**
+     * The inserse transform, from a Cartesian projection to Geodetic Lat/Long.
+     */
+    public function cartesianToGeodetic(Cartesian $cartesian)
+    {
+        $x = $cartesian->getX();
+        $y = $cartesian->getY();
+        $options = $cartesian->getOptions();
+
+        // Get the datum, allowing the point datum to override the projection datum.
+
+        $datum = $cartesian->getDatum();
+
+        if (! $datum) {
+            $datum = $this->getDatum();
+        }
+
+        list($lat, $long) = array_values($this->inverse($x, $y, $datum, $options));
+
+        $geodetic = new Geodetic(
+            ['lat' => rad2deg($lat), 'long' => rad2deg($long)],
+            $datum
+        );
+
+        // Shift the datum of the point if it's not the same as the projection.
+
+        if (! $datum->isSame($this->datum)) {
+            $geodetic = $geodetic->shiftDatum($this->datum);
+        }
+
+        return $geodetic;
     }
 
     /**

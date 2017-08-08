@@ -32,9 +32,7 @@ namespace proj4php\Projection;
   Initialize Transverse Mercator projection
  */
 
-use proj4php\Point\Utm as UtmPoint;
-use proj4php\Point\Geodetic;
-use proj4php\Point\Enu;
+use proj4php\Datum;
 
 class Utm extends Tmerc
 {
@@ -80,12 +78,8 @@ class Utm extends Tmerc
      * Transverse Mercator Forward  - long/lat to x/y
      * long/lat in radians
      */
-    public function forward(Geodetic $geodetic)
+    public function forward($lat, $long)
     {
-        // Get the lat/long as radians.
-        $lat = $geodetic->getLat(Geodetic::RADIANS);
-        $long = $geodetic->getLong(Geodetic::RADIANS);
-
         $zone = $this->zone;
         $lon_0 = $this->lon_0;
 
@@ -149,32 +143,36 @@ class Utm extends Tmerc
         // The Utm point extends the Enu point with zone information.
         // FIXME: the south hemisphere flag.
 
-        return new UtmPoint(['easting' => $x, 'northing' => $y, 'zone' => $zone, 'south' => false], $this->datum);
+        return ['x' => $x, 'x' => $y, 'zone' => $zone, 'south' => false];
     }
 
     /**
      * Universal Transverse Mercator Inverse - x/y/zone/hemisohere to long/lat
+     * TODO: have a think about what datum is used and attached to the Geodetic
+     * point in the end, since the projection in the cartesian point (if present)
+     * and the current projection may not be compatible.
      */
-    public function inverse(Enu $enu)
+    public function inverse($x, $y, Datum $datum, array $options = [])
     {
-        $x = $enu->getEasting();
-        $y = $enu->getNorthing();
-
-        //$zone = $this->zone;
         $lon_0 = $this->lon_0;
 
         // Ellipsoid parameters.
-        $a = $this->getA();
-        $ep2 = $this->getEp2();
-        $es = $this->getEs();
-        $sphere = $this->isSphere();
+        $datum = $this->getDatum();
+        $a = $datum->getA();
+        $ep2 = $datum->getEp2();
+        $es = $datum->getEs();
+        $sphere = $datum->isSphere();
 
-        // The zone may be available in the $enu point, so use that over
+        // The zone may be available in the $cartesian point, so use that over
         // whatever the projection is expecting.
         // CHECKME: is zone ever zero?
-        if ($enu instanceof UtmPoint && $zone = $enu->getZone()) {
+        if (isset($options['zone']) && $zone = $options['zone']) {
             $lon_0 = $this->zoneToLon0($zone);
         }
+
+        // TODO: check the hemisphere option of the point, in case it needs to override
+        // the hemisphere option set in this projection.
+        // ...
 
         if ($lon_0 === null) {
             throw new \Exception('Missing lon_0 or zone in inverse transform');
@@ -259,7 +257,7 @@ class Utm extends Tmerc
         }
 
         // TODO: the datum needs to be captured in here.
-        return new Geodetic(['lat' => rad2deg($lat), 'long' => rad2deg($lon)]);
+        return ['lat' => $lat, 'long' => $lon];
     }
 
     /**

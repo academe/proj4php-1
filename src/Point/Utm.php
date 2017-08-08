@@ -4,11 +4,15 @@ namespace proj4php\Point;
 
 /**
  * A UTM point, with x, y, zone and north/south indicator.
+ *
+ * CHECKME: is a UTM coordinate really an extension if an ENU coordinate?
+ * It seems to have no height component.
+ * TODO: this is an extension of a Cartesian coorinate.
  */
 
 use proj4php\Datum;
 
-class Utm extends Enu
+class Utm extends Enu // TODO: No, it extends a 2D coordinate.
 {
     protected $zone;
     protected $south = false;
