@@ -29,7 +29,16 @@ namespace proj4php\Projection;
 *******************************************************************************/
 
 /**
-  Initialize Transverse Mercator projection
+ * Initialize Transverse Mercator projection
+ *
+ * CHECKME: does UTM allow a negative y value? Does it just get a hemisphere indicator
+ * when it is turned into a map reference?
+ *
+ * This is one of the few conversion tools that correctly distriguishes between "standard" UTM
+ * and NATO UTM: https://www.uwgb.edu/dutchs/UsefulData/ConvertUTMNoOZ.HTM
+ * It ALSO makes exactly the same round-trip error converting from geodetic in the southern
+ * hemispherte to utm and back again, as this script does. So something is screwy there perhaps
+ * in the source libraries.
  */
 
 use proj4php\Datum;
@@ -48,6 +57,7 @@ class Utm extends Tmerc
     // Derived.
     protected $e0, $e1, $e2, $e3;
     protected $ml0;
+
     // Derived from the zone, or supplied directly.
     protected $lon_0;
     protected $y_0;
@@ -64,14 +74,16 @@ class Utm extends Tmerc
         // It could also vary per coordinate when transforming forward.
         $this->y_0 = $this->utmSouth ? 10000000.0 : 0.0;
 
-        $es = $this->getEs();
+        $datum = $this->getDatum();
 
-        $this->e0 = $this->e0fn($es);
-        $this->e1 = $this->e1fn($es);
-        $this->e2 = $this->e2fn($es);
-        $this->e3 = $this->e3fn($es);
+        // Only needed for non-spherical ellisoids.
+        if (! $datum->isSphere()) {
+            $es = $datum->getEs();
+            $lat_0 = $this->lat_0;
+            $a = $datum->getA();
 
-        $this->ml0 = $this->getA() * $this->mlfn($this->e0, $this->e1, $this->e2, $this->e3, $this->lat_0);
+            list($this->e0, $this->e1, $this->e2, $this->e3, $this->ml0) = $this->emlfn($es, $lat_0, $a);
+        }
     }
 
     /**
@@ -83,11 +95,13 @@ class Utm extends Tmerc
         $zone = $this->zone;
         $lon_0 = $this->lon_0;
 
-        // Ellipsoid parameters.
-        $a = $this->getA();
-        $ep2 = $this->getEp2();
-        $es = $this->getEs();
-        $sphere = $this->isSphere();
+        // Ellipsoid parameters and derivations.
+        $datum = $this->getDatum();
+
+        $a = $datum->getA();
+        $ep2 = $datum->getEp2();
+        $es = $datum->getEs();
+        $sphere = $datum->isSphere();
 
         // If no zone supplied, then derive it from the longitude and latitude.
         if ($zone === null) {
@@ -98,6 +112,10 @@ class Utm extends Tmerc
             $lon_0 = $this->zoneToLon0($zone);
         }
 
+        // Determine the hemisphere.
+        $utmSouth = ($lat < 0);
+        $y_0 = $utmSouth ? 10000000.0 : 0.0;
+
         // Delta longitude
         $delta_lon = $this->adjust_lon($long - $lon_0);
 
@@ -105,7 +123,8 @@ class Utm extends Tmerc
         $cos_phi = cos($lat);
 
         if ($sphere) {
-            // spherical form
+            // Spherical form
+            // CHECKME: does not seem to take the hemisphere into account.
 
             $b = $cos_phi * sin($delta_lon);
 
@@ -137,22 +156,19 @@ class Utm extends Tmerc
 
             $x = $this->k_0 * $n * $al * (1.0 + $als / 6.0 * (1.0 - $t + $c + $als / 20.0 * (5.0 - 18.0 * $t + pow($t, 2) + 72.0 * $c - 58.0 * $ep2))) + $this->x_0;
 
-            $y = $this->k_0 * ($ml - $this->ml0 + $n * $tq * ($als * (0.5 + $als / 24.0 * (5.0 - $t + 9.0 * $c + 4.0 * pow($c, 2) + $als / 30.0 * (61.0 - 58.0 * $t + pow($t, 2) + 600.0 * $c - 330.0 * $ep2))))) + $this->y_0;
+            $y = $this->k_0 * ($ml - $this->ml0 + $n * $tq * ($als * (0.5 + $als / 24.0 * (5.0 - $t + 9.0 * $c + 4.0 * pow($c, 2) + $als / 30.0 * (61.0 - 58.0 * $t + pow($t, 2) + 600.0 * $c - 330.0 * $ep2))))) + $y_0;
         }
 
         // The Utm point extends the Enu point with zone information.
         // FIXME: the south hemisphere flag.
 
-        return ['x' => $x, 'x' => $y, 'zone' => $zone, 'south' => false];
+        return ['x' => $x, 'y' => $y, 'zone' => $zone, 'south' => $utmSouth];
     }
 
     /**
      * Universal Transverse Mercator Inverse - x/y/zone/hemisohere to long/lat
-     * TODO: have a think about what datum is used and attached to the Geodetic
-     * point in the end, since the projection in the cartesian point (if present)
-     * and the current projection may not be compatible.
      */
-    public function inverse($x, $y, Datum $datum, array $options = [])
+    public function inverse($x, $y, Datum $datum, array $context = [])
     {
         $lon_0 = $this->lon_0;
 
@@ -165,14 +181,19 @@ class Utm extends Tmerc
 
         // The zone may be available in the $cartesian point, so use that over
         // whatever the projection is expecting.
-        // CHECKME: is zone ever zero?
-        if (isset($options['zone']) && $zone = $options['zone']) {
+        if (isset($context['zone']) && $zone = $context['zone']) {
             $lon_0 = $this->zoneToLon0($zone);
         }
 
-        // TODO: check the hemisphere option of the point, in case it needs to override
+        // Check the hemisphere option of the point, in case it needs to override
         // the hemisphere option set in this projection.
-        // ...
+        // This does not seem to work. It seems to have the opposite effect (needs to be
+        // zero in the southerm hemisphere).
+        if (isset($context['south']) || isset($context['utmSouth'])) {
+            $y_0 = 10000000.0;
+        } else {
+            $y_0 = $this->y_0;
+        }
 
         if ($lon_0 === null) {
             throw new \Exception('Missing lon_0 or zone in inverse transform');
@@ -202,18 +223,41 @@ class Utm extends Tmerc
             // Ellipsoidal form.
 
             $x = $x - $this->x_0;
-            $y = $y - $this->y_0;
+            $y = $y - $y_0;
 
-            $con = ($this->ml0 + $y / $this->k_0) / $a;
+            // Do we need to recalculate the e* and ml0 values?
+
+            if ($datum->isSame($this->getDatum())) {
+                // Same datum, so use the projection's pre-calculated values.
+                list($e0, $e1, $e2, $e3, $ml0) = [
+                    $this->e0,
+                    $this->e1,
+                    $this->e2,
+                    $this->e3,
+                    $this->ml0,
+                ];
+            } else {
+                // Recacalculate new valeus for the point's ellipsoid.
+                $es = $datum->getEs();
+                $a = $datum->getA();
+                $lat_0 = $this->lat_0;
+
+                list($e0, $e1, $e2, $e3, $ml0) = $this->emlfn($es, $lat_0, $a);
+            }
+
+            $con = ($ml0 + $y / $this->k_0) / $a;
             $phi = $con;
 
+            // FIXME: the e0 to e3 values are pre-calculated from the projection datum,
+            // but the inverse transform is done under the point datum, which may (or may not)
+            // be different to the projection datum.
             for ($i = 0; true; $i++) {
                 $delta_phi = ((
                     $con
-                    + $this->e1 * sin(2.0 * $phi)
-                    - $this->e2 * sin(4.0 * $phi)
-                    + $this->e3 * sin(6.0 * $phi)
-                ) / $this->e0) - $phi;
+                    + $e1 * sin(2.0 * $phi)
+                    - $e2 * sin(4.0 * $phi)
+                    + $e3 * sin(6.0 * $phi)
+                ) / $e0) - $phi;
 
                 $phi += $delta_phi;
 

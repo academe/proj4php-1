@@ -21,17 +21,17 @@ class Cartesian
     protected $y;
 
     /**
-     * Options to put the coordinates into context, such as zones and
+     * Context to put the coordinates into context, such as zones and
      * hemisphere indicators.
      */
-    protected $options = [];
+    protected $context = [];
 
     protected $projection;
 
     /**
      * Coords can be a CSV/SSV string, or an array.
      * Numerically keyed coords will be in x, y [, options] order.
-     * The options are not the projection details; they are further details
+     * The context is not the projection details; they are further details
      * to ensure the cartesian coordinates are unambiguous. Some map projections
      * may use options and some may not.
      *
@@ -56,7 +56,7 @@ class Cartesian
 
         $x = null;
         $y = null;
-        $options = [];
+        $context = [];
 
         foreach($coords as $key => $value) {
             $lkey = is_string($key) ? strtolower($key) : $key;
@@ -66,24 +66,24 @@ class Cartesian
             } elseif ($lkey === 'y' || $lkey === 1) {
                 $y = $value;
             } else {
-                $options[$lkey] = $value;
+                $context[$lkey] = $value;
             }
         }
 
         return [
             'x' => floatval($x),
             'y' => floatval($y),
-            'options' => $options,
+            'context' => $context,
         ];
     }
 
-    protected function setCoords($x, $y = null, $options = [])
+    protected function setCoords($x, $y = null, $context = [])
     {
-        if ($y === null && $options === []) {
-            list($x, $y, $options) = array_values($this->validateCoords($x));
+        if ($y === null && $context === []) {
+            list($x, $y, $context) = array_values($this->validateCoords($x));
         }
 
-        $this->setX($x)->setY($y)->setOptions($options);
+        $this->setX($x)->setY($y)->setContext($context);
 
         return $this;
     }
@@ -98,25 +98,25 @@ class Cartesian
         return $this->y;
     }
 
-    public function getOptions()
+    public function getContext()
     {
-        return $this->options;
+        return $this->context;
     }
 
-    public function getOption($key, $default = null)
+    public function getContextItem($key, $default = null)
     {
         $lkey = is_string($key) ? strtolower($key) : $key;
 
-        if (array_key_exists($key, $this->getOptions())) {
-            return $this->options[$lkey];
+        if (array_key_exists($key, $this->getContext())) {
+            return $this->context[$lkey];
         }
 
         return $default;
     }
 
-    protected function setOptions($value)
+    protected function setContext(array $value)
     {
-        $this->options = $value;
+        $this->context = $value;
         return $this;
     }
 

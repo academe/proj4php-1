@@ -95,17 +95,9 @@ class Lcc extends AbstractProjection
             ));
         }
 
-        // TODO: the ellipsoid in the datum set for this projection.
-        // Is $flat actually $sphere->getF()? Check out alternative derivations from a and rf.
-        // Get these from the ellipsoid, if there is one. The ellipsoid
-        // could in turn be in a datum.
-        // To do this, accessors will be needed for properties, so they can be calculated
-        // on-the-fly when needed.
-        // TODO: these parameters could be supplied in the datum of the point being converted;
-        // they may or may not be known in advance.
-
-        $a = $this->getA();
-        $e = $this->getE();
+        $datum = $this->getDatum();
+        $a = $datum->getA();
+        $e = $datum->getE();
 
         $sin1 = sin($this->lat_1);
         $cos1 = cos($this->lat_1);
@@ -218,5 +210,39 @@ class Lcc extends AbstractProjection
 
         // Return radians for consistency with the forward transform.
         return ['lat' => $lat, 'long' => $long];
+    }
+
+    /**
+     * Function to compute the latitude angle, phi2, for the inverse of the
+     * Lambert Conformal Conic and Polar Stereographic projections.
+     * 
+     * rise up an assertion if there is no convergence.
+     * 
+     * @param float $eccent
+     * @param float $ts
+     * @return float|int
+     */
+    public function phi2z($eccent, $ts)
+    {
+        $eccnth = 0.5 * $eccent;
+        $phi = M_PI_2 - 2 * atan($ts);
+
+        for ($i = 0; $i <= 15; $i++) {
+            $con = $eccent * sin($phi);
+            $dphi = M_PI_2
+                - 2 * atan($ts * (pow(((1.0 - $con) / (1.0 + $con)), $eccnth )))
+                - $phi;
+            $phi += $dphi;
+
+            // Is this self::EPSLN? I think it is.
+            if (abs($dphi) <= 0.0000000001) {
+                return $phi;
+            }
+        }
+
+        assert("false; /* phi2z has NoConvergence */");
+
+        // What does this return value mean? Maybe return null or raise an exeption.
+        return (-9999);
     }
 }

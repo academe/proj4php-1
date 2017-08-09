@@ -114,96 +114,6 @@ abstract class AbstractProjection
     }
 
     /**
-     * Function to compute the latitude angle, phi2, for the inverse of the
-     * Lambert Conformal Conic and Polar Stereographic projections.
-     * 
-     * rise up an assertion if there is no convergence.
-     * 
-     * @param float $eccent
-     * @param float $ts
-     * @return float|int
-     */
-    public function phi2z($eccent, $ts)
-    {
-        $eccnth = 0.5 * $eccent;
-        $phi = M_PI_2 - 2 * atan($ts);
-
-        for ($i = 0; $i <= 15; $i++) {
-            $con = $eccent * sin($phi);
-            $dphi = M_PI_2
-                - 2 * atan($ts * (pow(((1.0 - $con) / (1.0 + $con)), $eccnth )))
-                - $phi;
-            $phi += $dphi;
-
-            // Is this self::EPSLN? I think it is.
-            if (abs($dphi) <= 0.0000000001) {
-                return $phi;
-            }
-        }
-
-        assert("false; /* phi2z has NoConvergence */");
-
-        // What does this return value mean? Maybe return null or raise an exeption.
-        return (-9999);
-    }
-
-    /**
-     * following functions from gctpc cproj.c for transverse mercator projections
-     * 
-     * @param float $x
-     * @return float
-     */
-    public function e0fn($x)
-    {
-        return 1.0 - 0.25 * $x * (1.0 + $x / 16.0 * (3.0 + 1.25 * $x));
-    }
-
-    /**
-     * @param float $x
-     * @return float
-     */
-    public function e1fn($x)
-    {
-        return (0.375 * $x * (1.0 + 0.25 * $x * (1.0 + 0.46875 * $x)));
-    }
-
-    /**
-     * @param float $x
-     * @return float
-     */
-    public function e2fn($x)
-    {
-        return (0.05859375 * $x * $x * (1.0 + 0.75 * $x));
-    }
-
-    /**
-     * @param float $x
-     * @return float
-     */
-    public function e3fn($x)
-    {
-        return ($x * $x * $x * (35.0 / 3072.0));
-    }
-
-    /**
-     * @param float $e0
-     * @param float $e1
-     * @param float $e2
-     * @param float $e3
-     * @param float $phi
-     * @return float
-     */
-    public function mlfn($e0, $e1, $e2, $e3, $phi)
-    {
-        return (
-            $e0 * $phi
-            - $e1 * sin(2.0 * $phi)
-            + $e2 * sin(4.0 * $phi)
-            - $e3 * sin(6.0 * $phi)
-        );
-    }
-
-    /**
      * Function to eliminate roundoff errors in asin
      * 
      * @param float $x
@@ -246,62 +156,6 @@ abstract class AbstractProjection
         } else {
             return $default;
         }
-    }
-
-    /**
-     *
-     */
-    public function getA()
-    {
-        return $this->getDatum()->getA();
-    }
-
-    /**
-     *
-     */
-    public function getB()
-    {
-        return $this->getDatum()->getB();
-    }
-
-    /**
-     *
-     */
-    public function getRf()
-    {
-        return $this->getDatum()->getRf();
-    }
-
-    /**
-     *
-     */
-    public function getE()
-    {
-        return $this->getDatum()->getE();
-    }
-
-    /**
-     *
-     */
-    public function getEs()
-    {
-        return $this->getDatum()->getEs();
-    }
-
-    /**
-     *
-     */
-    public function getEp2()
-    {
-        return $this->getDatum()->getEp2();
-    }
-
-    /**
-     *
-     */
-    public function isSphere()
-    {
-        return $this->getDatum()->isSphere();
     }
 
     public function getDatum()
@@ -486,7 +340,7 @@ abstract class AbstractProjection
     {
         $x = $cartesian->getX();
         $y = $cartesian->getY();
-        $options = $cartesian->getOptions();
+        $context = $cartesian->getContext();
 
         // Get the datum, allowing the point datum to override the projection datum.
 
@@ -496,7 +350,7 @@ abstract class AbstractProjection
             $datum = $this->getDatum();
         }
 
-        list($lat, $long) = array_values($this->inverse($x, $y, $datum, $options));
+        list($lat, $long) = array_values($this->inverse($x, $y, $datum, $context));
 
         $geodetic = new Geodetic(
             ['lat' => rad2deg($lat), 'long' => rad2deg($long)],
