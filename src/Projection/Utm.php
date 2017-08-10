@@ -52,6 +52,9 @@ class Utm extends Tmerc
 
     protected $k_0 = 0.9996;
     protected $lat_0 = 0.0;
+
+    // False Easting to make all Eastings positive within a zone, with
+    // a little extra for overlappig another zone slightly to the West.
     protected $x_0 = 500000.0;
 
     // Derived.
@@ -60,10 +63,14 @@ class Utm extends Tmerc
 
     // Derived from the zone, or supplied directly.
     protected $lon_0;
+
+    // False Northing derived from the hemisphere.
     protected $y_0;
 
     // Maximun number of iterations for the inverse mapping.
     protected $max_iterations = 6;
+
+    protected $southern_false_northing = 10000000.0;
 
     public function __construct(array $options = [])
     {
@@ -114,7 +121,7 @@ class Utm extends Tmerc
 
         // Determine the hemisphere.
         $utmSouth = ($lat < 0);
-        $y_0 = $utmSouth ? 10000000.0 : 0.0;
+        $y_0 = $utmSouth ? $this->southern_false_northing : 0.0;
 
         // Delta longitude
         $delta_lon = $this->adjust_lon($long - $lon_0);
@@ -177,6 +184,7 @@ class Utm extends Tmerc
         $a = $datum->getA();
         $ep2 = $datum->getEp2();
         $es = $datum->getEs();
+        // The ellipsoid can tell us whether it is a sphere.
         $sphere = $datum->isSphere();
 
         // The zone may be available in the $cartesian point, so use that over
@@ -187,10 +195,8 @@ class Utm extends Tmerc
 
         // Check the hemisphere option of the point, in case it needs to override
         // the hemisphere option set in this projection.
-        // This does not seem to work. It seems to have the opposite effect (needs to be
-        // zero in the southerm hemisphere).
-        if (isset($context['south']) || isset($context['utmSouth'])) {
-            $y_0 = 10000000.0;
+        if (! empty($context['south']) || ! empty($context['utmSouth'])) {
+            $y_0 = $this->southern_false_northing;
         } else {
             $y_0 = $this->y_0;
         }
@@ -199,7 +205,6 @@ class Utm extends Tmerc
             throw new \Exception('Missing lon_0 or zone in inverse transform');
         }
 
-        // The ellipsoid can tell us whether it is a sphere.
         if ($sphere) {
             // Spherical form.
 
