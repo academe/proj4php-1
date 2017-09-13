@@ -29,7 +29,7 @@ namespace proj4php\projCode;
 *******************************************************************************/
 
 /**
-  Initialize Transverse Mercator projection
+ * Initialize Transverse Mercator projection
  */
 
 use proj4php\Proj4php;

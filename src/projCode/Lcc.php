@@ -1,4 +1,5 @@
 <?php
+
 namespace proj4php\projCode;
 
 /**
@@ -79,16 +80,16 @@ class Lcc
         }
 
         // If lat2 is not defined
-        if ( ! isset($this->lat2)) {
+        if (! isset($this->lat2)) {
             $this->lat2 = $this->lat0;
         }
 
         // SR-ORG:113
-        if ( ! isset($this->lat1)) {
+        if (! isset($this->lat1)) {
             $this->lat1 = $this->lat0;
         }
 
-        if ( ! isset($this->k0)) {
+        if (! isset($this->k0)) {
             $this->k0 = 1.0;
         }
 
