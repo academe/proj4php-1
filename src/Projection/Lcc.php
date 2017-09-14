@@ -4,7 +4,7 @@ namespace proj4php\Projection;
 
 /**
  * Author : Julien Moquet
- * 
+ *
  * Inspired by Proj4JS from Mike Adair madairATdmsolutions.ca
  * and Richard Greenwood rich@greenwoodma$p->com
  * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html
@@ -167,7 +167,7 @@ class Lcc extends AbstractProjection
 
     /**
      * Lambert Conformal Conic inverse equations--mapping x,y to lat/long
-     * 
+     *
      * @param Cartesian $cartesian
      * @return Geodetic
      */
@@ -215,9 +215,9 @@ class Lcc extends AbstractProjection
     /**
      * Function to compute the latitude angle, phi2, for the inverse of the
      * Lambert Conformal Conic and Polar Stereographic projections.
-     * 
+     *
      * rise up an assertion if there is no convergence.
-     * 
+     *
      * @param float $eccent
      * @param float $ts
      * @return float|int
@@ -230,7 +230,7 @@ class Lcc extends AbstractProjection
         for ($i = 0; $i <= 15; $i++) {
             $con = $eccent * sin($phi);
             $dphi = M_PI_2
-                - 2 * atan($ts * (pow(((1.0 - $con) / (1.0 + $con)), $eccnth )))
+                - 2 * atan($ts * (pow(((1.0 - $con) / (1.0 + $con)), $eccnth)))
                 - $phi;
             $phi += $dphi;
 

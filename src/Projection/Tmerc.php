@@ -6,7 +6,7 @@ class Tmerc extends AbstractProjection
 {
     /**
      * following functions from gctpc cproj.c for transverse mercator projections
-     * 
+     *
      * @param float $es
      * @return float
      */

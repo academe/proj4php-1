@@ -4,7 +4,7 @@ namespace proj4php;
 
 /**
  * Author : Julien Moquet
- * 
+ *
  * Inspired by Proj4js from Mike Adair madairATdmsolutions.ca
  * and Richard Greenwood rich@greenwoodma$p->com
  * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html
@@ -51,24 +51,24 @@ class Datum
     protected $name;
 
     /**
-     * The datum ellipsoid.
+     * @var The datum ellipsoid.
      */
     protected $ellipsoid;
 
     /**
-     * The datum centre-shifting parameters (to WGS84).
+     * @var The datum centre-shifting parameters (to WGS84).
      * Shifts [Dx, Dym Dz] in metres.
      */
     protected $displacementParameters = [0, 0, 0];
 
     /**
-     * The datum rotation parameters (to WGS84)
+     * @var The datum rotation parameters (to WGS84)
      * Shifts [Rx, Ry, Rz] in seconds of arc.
      */
     protected $rotationalParameters = [0, 0, 0];
 
     /**
-     * The datum scale parameter.
+     * @var The datum scale parameter.
      * Scale change in PPM.
      * M_BF
      */
@@ -92,7 +92,9 @@ class Datum
         $dir_factor = ($direction == self::FORWARD ? 1 : -1);
 
         return array_map(
-            function ($m) use ($dir_factor) {return $dir_factor * $m;},
+            function ($m) use ($dir_factor) {
+                return $dir_factor * $m;
+            },
             $this->displacementParameters
         );
     }
@@ -107,14 +109,18 @@ class Datum
         if ($unit == self::RADIANS) {
             // Convert units; seconds of arc to radians.
             return array_map(
-                function ($m) use ($dir_factor) {return $dir_factor * deg2rad($m / 60);},
+                function ($m) use ($dir_factor) {
+                    return $dir_factor * deg2rad($m / 60);
+                },
                 $this->rotationalParameters
             );
         }
 
         if ($unit == self::ARCSECONDS) {
             return array_map(
-                function ($m) use ($dir_factor) {return $dir_factor * $m;},
+                function ($m) use ($dir_factor) {
+                    return $dir_factor * $m;
+                },
                 $this->rotationalParameters
             );
         }
@@ -218,11 +224,11 @@ class Datum
     {
         $count = $this->getShiftParameterCount();
 
-        if ($count == static::SHIFT_PARAM_COUNT_3) {
+        if ($count === static::SHIFT_PARAM_COUNT_3) {
             return $this->displacementParameters;
         }
 
-        if ($count == static::SHIFT_PARAM_COUNT_7) {
+        if ($count === static::SHIFT_PARAM_COUNT_7) {
             return array_merge(
                 $this->displacementParameters,
                 $this->rotationalParameters,
@@ -240,13 +246,13 @@ class Datum
     {
         $r = $this->rotationalParameters;
 
-        if ($r[0] != 0 || $r[1] || $r[2] || $this->scalerParameter != 1.0) {
+        if ($r[0] !== 0 || $r[1] || $r[2] || $this->scalerParameter !== 1.0) {
             return static::SHIFT_PARAM_COUNT_7;
         }
 
         $d = $this->displacementParameters;
 
-        if ($d[0] != 0 || $d[1] != 0 || $d[2] != 0) {
+        if ($d[0] !== 0 || $d[1] !== 0 || $d[2] !== 0) {
             return static::SHIFT_PARAM_COUNT_3;
         }
 
@@ -255,6 +261,9 @@ class Datum
 
     /**
      * Checks if this datum is the same as the supplied caparison datum.
+     *
+     * @param Datum $datum
+     * @return boolean
      */
     public function isSame(Datum $datum)
     {
@@ -272,18 +281,19 @@ class Datum
             return false;
         }
 
+        $epsilon = 1.0e-6;
+
         // Check the ellipsoids - are they the same?
         // The two driving values are a and rf.
         // FIXME: this hard-coded tolerance.
-        if (
-            abs($this->getEllipsoid()->getA() - $datum->getEllipsoid()->getA()) > 1.0e-6
-            || abs($this->getEllipsoid()->getRf() - $datum->getEllipsoid()->getRf()) > 1.0e-6
+        if (abs($this->getEllipsoid()->getA() - $datum->getEllipsoid()->getA()) > $epsilon
+            || abs($this->getEllipsoid()->getRf() - $datum->getEllipsoid()->getRf()) > $epsilon
         ) {
             return false;
         }
 
-        // Can't find any differences in the shifting Bursa-Wolf parameters, so assume
-        // they are the same. We ignaore the names of the datums.
+        // Can't find any differences in the shifting Bursa-Wolf parameters, within a tolerance,
+        // so assume they are the same. We ignore the names of the datums.
         return true;
     }
 

@@ -45,7 +45,7 @@ class Utm extends Enu // TODO: No, it extends a 2D coordinate.
 
     protected function validateCoords($coords)
     {
-        foreach($coords as $key => $value) {
+        foreach ($coords as $key => $value) {
             $lkey = strtolower($key);
 
             // CHECKME: does x always equate to an easting, or can the order be optionally switched?

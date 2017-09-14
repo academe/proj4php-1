@@ -14,5 +14,4 @@ trait IsCloneable
     {
         return clone $this;
     }
-
 }

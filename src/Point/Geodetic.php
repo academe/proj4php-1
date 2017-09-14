@@ -164,8 +164,13 @@ class Geodetic
             $long = floatval($long);
         }
 
-        while($long > 180.0) $long -= 360;
-        while($long <= -180.0) $long += 360;
+        while ($long > 180.0) {
+            $long -= 360;
+        }
+
+        while ($long <= -180.0) {
+            $long += 360;
+        }
 
         return $long;
     }

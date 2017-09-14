@@ -58,7 +58,7 @@ class Cartesian
         $y = null;
         $context = [];
 
-        foreach($coords as $key => $value) {
+        foreach ($coords as $key => $value) {
             $lkey = is_string($key) ? strtolower($key) : $key;
 
             if ($lkey === 'x' || $lkey === 0) {

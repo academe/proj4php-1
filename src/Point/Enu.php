@@ -34,7 +34,7 @@ class Enu
     {
         // TODO: expand a CSV string to an array.
 
-        foreach($coords as $key => $value) {
+        foreach ($coords as $key => $value) {
             $lkey = strtolower($key);
 
             // CHECKME: does x always equate to an easting, or can the order be optionally switched?

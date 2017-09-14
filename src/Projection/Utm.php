@@ -4,10 +4,10 @@ namespace proj4php\Projection;
 
 /**
  * Author : Julien Moquet
- * 
+ *
  * Inspired by Proj4JS from Mike Adair madairATdmsolutions.ca
- *                      and Richard Greenwood rich@greenwoodma$p->com 
- * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html 
+ *                      and Richard Greenwood rich@greenwoodma$p->com
+ * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html
  */
 /*******************************************************************************
   NAME                            TRANSVERSE MERCATOR
@@ -58,7 +58,10 @@ class Utm extends Tmerc
     protected $x_0 = 500000.0;
 
     // Derived.
-    protected $e0, $e1, $e2, $e3;
+    protected $e0;
+    protected $e1;
+    protected $e2;
+    protected $e3;
     protected $ml0;
 
     // Derived from the zone, or supplied directly.

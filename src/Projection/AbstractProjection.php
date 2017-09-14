@@ -20,7 +20,7 @@ abstract class AbstractProjection
      * from the points supplied when transforming projections.
      */
 
-     protected $datum;
+    protected $datum;
 
     /**
      * Function to compute the constant small t for use in the forward
@@ -30,7 +30,7 @@ abstract class AbstractProjection
      * TODO: If the parsed parameters are put into an array rather than
      * properties, then it will be easier to list them, serialise them etc.
      * Or maybe we just treat "null" as a non-set property?
-     * 
+     *
      * @param float $eccent
      * @param float $phi
      * @param float $sinphi
@@ -47,7 +47,7 @@ abstract class AbstractProjection
 
     /**
      * Adjust longitude to -180 to 180; input in radians
-     * 
+     *
      * @param float $lon Angle in radians
      * @return float
      */
@@ -61,7 +61,7 @@ abstract class AbstractProjection
     /**
      * Return the sign of an argument.
      * This differs from PHP's core sign() function in that zero returns as postive.
-     * 
+     *
      * @param int|float $x The numeric valid to test.
      * @return int -1 for negative; +1 for positive or zero
      */
@@ -73,7 +73,7 @@ abstract class AbstractProjection
     /**
      * Function to compute the constant small m which is the radius of
      * a parallel of latitude, phi, divided by the semimajor axis.
-     * 
+     *
      * @param float $eccent
      * @param float $sinphi
      * @param float $cosphi
@@ -87,7 +87,7 @@ abstract class AbstractProjection
 
     /**
      * Latitude Isometrique - close to tsfnz ...
-     * 
+     *
      * @param float $eccent
      * @param float $phi
      * @param float $sinphi
@@ -109,13 +109,13 @@ abstract class AbstractProjection
 
         $con = $eccent * $sinphi;
 
-        return log(tan((M_PI_2 + $phi) / 2.0 ) )
-            + $eccent * log( (1.0 - $con) / (1.0 + $con)) / 2.0;
+        return log(tan((M_PI_2 + $phi) / 2.0))
+            + $eccent * log((1.0 - $con) / (1.0 + $con)) / 2.0;
     }
 
     /**
      * Function to eliminate roundoff errors in asin
-     * 
+     *
      * @param float $x
      * @return float
      */

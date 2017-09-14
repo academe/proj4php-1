@@ -4,11 +4,11 @@ namespace proj4php;
 
 /**
  * Author : Julien Moquet
- * 
- * Simple conversion from javascript to PHP of Proj4php by Mike Adair madairATdmsolutions.ca
- * and Richard Greenwood rich@greenwoodmap.com 
  *
- * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html 
+ * Simple conversion from javascript to PHP of Proj4php by Mike Adair madairATdmsolutions.ca
+ * and Richard Greenwood rich@greenwoodmap.com
+ *
+ * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html
  */
 
 use Exception;
@@ -74,7 +74,7 @@ class Proj4php
         $default_defs['EPSG:102113'] = $default_defs['EPSG:3875'];
 
         // Load them through the API so we have a single point of validation.
-        foreach($default_defs as $key => $data) {
+        foreach ($default_defs as $key => $data) {
             $this->addDef($key, $data);
         }
     }
@@ -163,7 +163,7 @@ class Proj4php
         ];
 
         // Load them through the API so we have a single point of validation.
-        foreach($default_datums as $key => $data) {
+        foreach ($default_datums as $key => $data) {
             $this->addDatum($key, $data);
         }
     }
@@ -367,22 +367,22 @@ class Proj4php
     public function transform()
     {
         if (func_num_args() == 2) {
-          $source = null;
-          $dest = func_get_arg(0);
-          $point = func_get_arg(1);
+            $source = null;
+            $dest = func_get_arg(0);
+            $point = func_get_arg(1);
         } else {
-          $source = func_get_arg(0);
-          $dest = func_get_arg(1);
-          $point = func_get_arg(2);
+            $source = func_get_arg(0);
+            $dest = func_get_arg(1);
+            $point = func_get_arg(2);
         }
 
         if ($source === null) {
-           if ($point->getProjection() === null) {
-              self::reportError("No projection for point\r\n");
-              return $point;
-           }
+            if ($point->getProjection() === null) {
+                self::reportError("No projection for point\r\n");
+                return $point;
+            }
 
-           $source = $point->getProjection();
+            $source = $point->getProjection();
         }
 
         self::reportDebug(sprintf(
@@ -419,8 +419,7 @@ class Proj4php
             return $point;
         }
 
-        if (
-            isset($source->datum)
+        if (isset($source->datum)
             && isset($dest->datum)
             && ($this->notWGS($source, $dest) || $this->notWGS($dest, $source))
         ) {
@@ -548,7 +547,7 @@ class Proj4php
             $point->y
         ));
 
-        // Nov 2014 - changed Werner Schäffer
+        // Nov 2014 - changed Werner Schï¿½ffer
         // Clone point to avoid a lot of problems
         return (clone $point);
     }
@@ -624,7 +623,6 @@ class Proj4php
         return $point;
     }
 
-
     /**
      * Function: adjust_axis
      * Normalize or de-normalized the x/y/z axes.  The normal form is "enu"
@@ -679,7 +677,7 @@ class Proj4php
                         $point->z = -$v;
                     }
                     break;
-                default :
+                default:
                     throw(new Exception("ERROR: unknown axis (" . $crs->axis[$i] . ") - check definition of " . $crs->projName));
                     return null;
             }
@@ -726,12 +724,12 @@ class Proj4php
 
             // Add any definitions we have imported to the defs array.
             foreach ($def as $def_name => $def_details) {
-                if ( ! is_array($def_details)) {
+                if (! is_array($def_details)) {
                     $this->defs[$def_name] = $def_details;
                 } else {
                     $attributes = array();
 
-                    array_walk($def_details, function($val, $key) use(&$attributes) { 
+                    array_walk($def_details, function ($val, $key) use (&$attributes) {
                         $attributes[] = $key."=".$val; 
                     });
 

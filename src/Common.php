@@ -4,10 +4,10 @@ namespace proj4php;
 
 /**
  * Author : Julien Moquet
- * 
+ *
  * Inspired by Proj4js from Mike Adair madairATdmsolutions.ca
- * and Richard Greenwood rich@greenwoodmap.com 
- * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html 
+ * and Richard Greenwood rich@greenwoodmap.com
+ * License: LGPL as per: http://www.gnu.org/copyleft/lesser.html
  *
  * All methods in this class are static and all data are constants.
  * There is no need to instantiate this class.
@@ -74,13 +74,10 @@ class Common
     const C68 = 0.00569661458333333333;
     const C88 = 0.3076171875;
 
-
-
-
     /**
-     * Function to compute constant small q which is the radius of a 
+     * Function to compute constant small q which is the radius of a
      * parallel of latitude, phi, divided by the semimajor axis.
-     * 
+     *
      * @param float $eccent
      * @param float $sinphi
      * @return float
@@ -92,7 +89,7 @@ class Common
 
             return (
                 ( 1.0 - $eccent * $eccent)
-                * ($sinphi / (1.0 - $con * $con) - (.5 / $eccent) * log( (1.0 - $con) / (1.0 + $con) ))
+                * ($sinphi / (1.0 - $con * $con) - (0.5 / $eccent) * log((1.0 - $con) / (1.0 + $con)))
             );
         }
 
@@ -112,7 +109,7 @@ class Common
     /**
      * IGNF - DGR : algorithms used by IGN France
      * Adjust latitude to -90 to 90; input in radians
-     * 
+     *
      * @param float $x
      * @return float
      */
@@ -125,9 +122,7 @@ class Common
         return $x;
     }
 
-
     /**
-     * 
      * @param float $x
      * @param float $L
      * @return float
@@ -139,7 +134,7 @@ class Common
 
     /**
      * Inverse Latitude Isometrique - close to ph2z
-     * 
+     *
      * @param float $eccent
      * @param float $ts
      * @return float
@@ -153,15 +148,15 @@ class Common
         do {
             $Iphi = $phi;
             $con = $eccent * sin($Iphi);
-            $phi = static::fL(exp($eccent * log((1.0 + $con) / (1.0 - $con)) / 2.0 ), $ts);
-        } while(abs($phi - $Iphi) > 1.0e-12);
+            $phi = static::fL(exp($eccent * log((1.0 + $con) / (1.0 - $con)) / 2.0), $ts);
+        } while (abs($phi - $Iphi) > 1.0e-12);
 
         return $phi;
     }
 
     /**
      * Grande Normale
-     * 
+     *
      * @param float $a
      * @param float $e
      * @param float $sinphi
@@ -175,7 +170,7 @@ class Common
 
     /**
      * code from the PROJ.4 pj_mlfn.c file;  this may be useful for other projections
-     * 
+     *
      * @param float $es
      * @return float
      */
@@ -212,7 +207,6 @@ class Common
     }
 
     /**
-     * 
      * @param float $arg
      * @param float $es
      * @param float $en
@@ -229,7 +223,7 @@ class Common
 
             //$t = static::pj_mlfn($phi, $s, cos($phi), $en) - $arg;
             //$phi -= $t * ($t * sqrt($t)) * $k;
-            $t = (static::pj_mlfn( $phi, $s, cos($phi), $en) - $arg) * ($t * sqrt($t)) * $k;
+            $t = (static::pj_mlfn($phi, $s, cos($phi), $en) - $arg) * ($t * sqrt($t)) * $k;
             $phi -= $t;
 
             if (abs($t) < Common::EPSLN) {
