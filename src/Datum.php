@@ -315,7 +315,7 @@ class Datum
             $SDPHI = $SPHI * $CPHI0 - $CPHI * $SPHI0;
             $CPHI0 = $CPHI;
             $SPHI0 = $SPHI;
-        } while ($SDPHI * $SDPHI > $genau2 && $iter < $maxiter);
+        } while (($SDPHI * $SDPHI) > $genau2 && $iter < $maxiter);
 
         // ellipsoidal (geodetic) latitude
         $Latitude = atan($SPHI / abs($CPHI));
@@ -365,7 +365,7 @@ class Datum
 
         $X = floatval($p->x);
         $Y = floatval($p->y);
-        $Z = floatval($p->z ? $p->z : 0);
+        $Z = floatval($p->z ?: 0);
 
         $AtPole = false;
 

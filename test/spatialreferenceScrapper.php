@@ -32,10 +32,12 @@ while ($next && $max !== 0) {
         }
 
     }));
-    echo 'page '.($count+1);
-    if (!array_key_exists($codes[0], $pageCodes)) {
 
-    	echo ' scrapping'.;
+    echo 'page '. ($count + 1);
+
+    if (! array_key_exists($codes[0], $pageCodes)) {
+
+    	echo ' scrapping';
 
         array_walk($codes, function ($c) use (&$pageCodes) {
             $p             = explode(':', $c);
@@ -48,7 +50,7 @@ while ($next && $max !== 0) {
             echo ' (success)'."\n";
 
         });
-    }else{
+    } else {
 		echo ' skipping (exists)'."\n";
     }
 
